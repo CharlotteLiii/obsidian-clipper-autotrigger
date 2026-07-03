@@ -1,0 +1,31 @@
+# Example Windows configuration for scripts/clip_webpages.ps1.
+# Copy to clipper.win.conf and edit, or run scripts/install.ps1 to generate one.
+
+# Absolute path to the Obsidian vault. Use forward or back slashes.
+VAULT_PATH="C:\Users\me\Documents\Obsidian Vault"
+
+# Relative folder inside the vault where the Web Clipper saves notes.
+# Leave empty to scan the whole vault.
+CLIP_OUTPUT_DIR="Inbox/Clippings"
+
+# Key combo bound to "Obsidian Web Clipper" at chrome://extensions/shortcuts.
+# Must match Chrome exactly, otherwise the popup will not appear.
+# Modifiers: Shift, Ctrl/Control, Alt/Option, Cmd/Meta. Case-insensitive.
+CLIP_SHORTCUT="Shift+Alt+S"
+
+# Trigger driver: ahk (AutoHotkey v2) or sendkeys.
+TRIGGER_DRIVER=ahk
+AHK_EXE=AutoHotkey64.exe
+
+# Chrome bootstrap. Leave CHROME_EXE empty to auto-detect Program Files paths.
+CHROME_EXE=
+CHROME_DEBUG_PORT=9222
+# Optional dedicated profile; if empty a per-user profile is created under LocalAppData.
+CHROME_USER_DATA_DIR=
+
+# Timing knobs (seconds). Same semantics as the macOS config.
+PAGE_LOAD_TIMEOUT=45
+RENDER_GRACE_SECONDS=3
+CLIP_TIMEOUT=30
+MAX_RETRIES=3
+POLL_INTERVAL=1

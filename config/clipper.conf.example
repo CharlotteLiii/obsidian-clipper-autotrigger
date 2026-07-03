@@ -1,0 +1,32 @@
+# Example configuration for scripts/clip_webpages.sh (macOS).
+# Copy to config/clipper.conf and edit, or run scripts/install.sh to have it generated.
+# Keep values shell-quoted when paths or names contain spaces.
+
+# Absolute path to the Obsidian vault to monitor.
+VAULT_PATH="/absolute/path/to/your/Obsidian Vault"
+
+# macOS Shortcut that triggers the Obsidian Web Clipper extension.
+# Create it in the Shortcuts app (see references/usage.md) or use the
+# supplied template at applescripts/shortcut_obsidian_clip_template.applescript.
+SHORTCUT_NAME="ObsidianClip"
+
+# Relative path inside VAULT_PATH where the Obsidian Web Clipper extension
+# saves Markdown files. When set, only this subdirectory is scanned for new
+# or changed .md files instead of the entire vault. Match this to the
+# extension's "Save to" folder. Leave empty to scan the whole vault.
+CLIP_OUTPUT_DIR="Inbox/Clippings"
+
+# Key combo bound to "Obsidian Web Clipper" at chrome://extensions/shortcuts.
+# Must match Chrome exactly, otherwise the popup will not appear.
+# Modifiers: Shift, Ctrl/Control, Alt/Option, Cmd/Meta. Case-insensitive.
+CLIP_SHORTCUT="Shift+Option+S"
+
+# Fail before opening Chrome when the configured Shortcut is not found.
+CHECK_SHORTCUT_EXISTS=1
+
+# Timing knobs (seconds).
+PAGE_LOAD_TIMEOUT=45
+RENDER_GRACE_SECONDS=3
+CLIP_TIMEOUT=30
+MAX_RETRIES=3
+POLL_INTERVAL=1

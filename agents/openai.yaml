@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian-Clipper-AutoTrigger"
+  short_description: "Clip webpages into an Obsidian vault via Chrome"
+  default_prompt: "Use $Obsidian-Clipper-AutoTrigger to clip this webpage into my Obsidian vault: https://example.com/article"
