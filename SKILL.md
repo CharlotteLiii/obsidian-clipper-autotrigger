@@ -14,7 +14,7 @@ the user's working Obsidian Web Clipper Chrome extension.
 ## ⚠️ Preflight — confirm with the user before the first run
 
 On any machine where this skill has not run successfully before, remind
-the user of the three requirements below and get explicit confirmation on
+the user of the four requirements below and get explicit confirmation on
 each one. If any is unverified, walk the user through it *before* invoking
 the script — do not just run and let it fail.
 
@@ -35,6 +35,36 @@ the script — do not just run and let it fail.
    Defaults: `Shift+Option+S` (macOS) / `Shift+Alt+S` (Windows). If the
    user customized the shortcut, update the config accordingly before
    running.
+4. **Target URLs must not require login in the driven Chrome profile.**
+   Login-wall handling has two layers on **both platforms**:
+     - **Windows**: `clip_webpages.ps1` runs a post-load CDP probe
+       (`Test-CdpLoginWall`) after `Page.loadEventFired`.
+     - **macOS**: `clip_webpages.sh` runs an equivalent probe via
+       `applescripts/chrome_login_wall_probe.scpt`, which uses Chrome's
+       AppleScript `execute javascript` command. **One-time setup**:
+       enable *Chrome → View → Developer → Allow JavaScript from Apple
+       Events*. Without it the probe logs a hint and lets the clip
+       proceed unguarded (does not abort).
+
+   Both probes inspect the final URL, DOM (password inputs, paywall
+   nodes), and body text (EN + zh-CN phrases: `please sign in`,
+   `subscribe to read`, `登录后阅读`, `会员专享`, `关注公众号后阅读`, …).
+   On a hit the URL is aborted with `SUSPECTED_LOGIN_WALL: <reason>`
+   before the clipper is triggered, so login pages no longer produce
+   empty "please sign in" Markdown notes. Turn off with
+   `LOGIN_WALL_CHECK=0` in the platform config.
+
+   Either way you (the agent) **must still enforce the per-clip login
+   check in the Workflow section below on every request** — the probe
+   is a safety net, not a substitute for asking the user to sign in
+   ahead of time on known auth-gated hosts. This preflight only covers
+   the *first* login on a machine.
+   The driven Chrome profile is:
+   - macOS: the user's regular Google Chrome profile.
+   - Windows: the dedicated `--user-data-dir` profile the skill launches
+     (see Operational Notes below). On first Windows run this profile is
+     brand-new and has zero logged-in sessions, so *every* auth-gated
+     site needs a first-time login inside that profile.
 
 A short verification script you can offer the user:
 
@@ -76,7 +106,58 @@ directories and link into every host that exists. Pass `--target-root` /
 
 ## Workflow (both platforms)
 
-1. Validate each URL before doing anything else. Only `http://` and `https://` URLs are accepted.
+### Step 0 — Per-clip login check (mandatory, every request)
+
+Before invoking the platform entrypoint, run this check for **each URL**
+in the request. It is not optional and is not covered by the first-run
+preflight — the preflight is one-off, this runs every time.
+
+1. **Classify the URL** by domain:
+   - **Known auth-required** — warn *and confirm login* before running.
+     Non-exhaustive list, extend as you learn the user's habits:
+     - `medium.com` (members-only posts), `readmedium.com`
+     - `mp.weixin.qq.com` (微信订阅号)
+     - `notion.so`, `*.notion.site` (private pages)
+     - `twitter.com`, `x.com`
+     - `linkedin.com`, `facebook.com`, `instagram.com`
+     - `github.com` on `/settings`, `/orgs/*/private*`, or any repo
+       whose top page shows "You must be signed in"
+     - `substack.com` paywalled posts
+     - Any host with `sso`, `login`, `auth`, `accounts`, `okta`,
+       `feishu.cn/space`, corporate `*.lark.com`, etc.
+   - **Likely public** — news, blogs, docs, wikipedia, arxiv, plain
+     `github.com/<user>/<repo>` READMEs, personal `.dev` / `.io` sites.
+     No need to ask; proceed.
+   - **Unknown / ambiguous** — ask the user once whether this URL needs
+     login before you run.
+
+2. **When login is required**, tell the user *exactly* what to do:
+
+   > “This URL looks like it needs a login. The skill has a post-load
+   > login-wall probe but it's a heuristic safety net, not a guarantee
+   > — if you're not signed in, the clip may still produce an empty
+   > 'please log in' note. Please open **the Chrome profile this skill
+   > drives** (macOS: your normal Chrome; Windows: the dedicated profile
+   > the skill launched, usually visible as a separate Chrome window
+   > with a fresh profile icon), sign in to <site>, then tell me it's
+   > done. I'll clip after that.”
+
+   Do not just kick off the script and hope for the best. Wait for the
+   user's confirmation. On Windows specifically, remind them the login
+   must happen in the dedicated `--user-data-dir` profile, not their
+   daily-driver Chrome.
+
+3. **Batch requests**: if the user hands you a list of URLs, classify
+   the whole list first and surface all auth-required hosts in one
+   message instead of asking N times.
+
+4. **Skip the check** only when the user has explicitly said in this
+   session “I'm already logged in everywhere” or when the URL matches a
+   Likely-public bucket above.
+
+### Step 1 — Clip execution
+
+1. Validate each URL. Only `http://` and `https://` URLs are accepted.
 2. Run the platform entrypoint with the requested URL list. It:
    - Loads the platform config (`config/clipper.conf` on macOS,
      `config/clipper.win.conf` on Windows).
@@ -95,6 +176,29 @@ directories and link into every host that exists. Pass `--target-root` /
      failure, prints detailed progress logs, exits non-zero on failure.
 3. Report the result from the script output, including the detected
    Markdown filename when present and the final success/failure counts.
+
+### Step 2 — Failure diagnosis
+
+When the script reports `Result: FAILED` for a URL, **login wall is the
+number-one suspect** because the script cannot distinguish it from other
+failures. Before blaming the extension, shortcut, or timing:
+
+On Windows, the log will often say `ERROR: SUSPECTED_LOGIN_WALL: <reason>`
+directly — in that case skip the manual check and jump straight to
+step 2 below (have the user sign in and retry). On macOS the same line
+appears when the probe is enabled and Chrome's "Allow JavaScript from
+Apple Events" is on. When the probe was disabled / missed on either
+platform, use the manual steps.
+
+1. Ask the user to open that exact URL in the driven Chrome profile and
+   check what the page actually shows — a real article, a login form, or
+   a “Please sign in / 请登录后阅读” wall.
+2. If it's a login wall, that's the cause. Have them sign in inside that
+   profile and retry. Do **not** claim the extension or shortcut is
+   broken until this has been ruled out.
+3. Only if the page is fully readable when opened manually should you
+   move on to the other failure modes (extension not installed, shortcut
+   not bound, `CLIP_OUTPUT_DIR` mismatch, focus stealing on Windows).
 
 ## Configuration
 
