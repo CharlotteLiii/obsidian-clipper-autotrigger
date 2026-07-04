@@ -74,6 +74,13 @@ you use (or all of them if you use several):
      ran with `--no-enable-apple-events`, toggle it manually via Chrome
      > View > Developer > **Allow JavaScript from Apple Events**.
 
+7. The installer runs `scripts/detect_extension.sh` to check whether
+   the Obsidian Web Clipper Chrome extension is present in one of your
+   Chrome profiles, and whether its recent save-to paths match your
+   `CLIP_OUTPUT_DIR`. If either check fails, `install.sh` prints a
+   warning telling you exactly what to fix. Use
+   `--skip-extension-check` to opt out.
+
 7. Restart your agent (OpenClaw / Claude Code / Codex) so the skill is discoverable.
 
 ## Commands
