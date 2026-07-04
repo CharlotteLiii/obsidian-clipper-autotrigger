@@ -1,7 +1,7 @@
 ---
 name: obsidian-clipper-autotrigger
 description: Clip one or more webpages into an Obsidian vault by driving Google Chrome and the installed Obsidian Web Clipper extension. Works on macOS (AppleScript + Shortcuts) and Windows (CDP + AutoHotkey/SendKeys). Use when the user asks to clip/save/archive/capture webpages or URLs into Obsidian, especially prompts like "Clip this webpage", "Clip these webpages", "save this article to Obsidian", or "use Obsidian Web Clipper".
-version: 0.3.0
+version: 0.4.0
 homepage: https://github.com/CharlotteLiii/obsidian-clipper-autotrigger
 license: MIT
 ---

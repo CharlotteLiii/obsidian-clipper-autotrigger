@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-04
+
 ### Added
 - **macOS: post-load login-wall detection** (parity with Windows).
   `applescripts/chrome_login_wall_probe.scpt` runs the same URL /
