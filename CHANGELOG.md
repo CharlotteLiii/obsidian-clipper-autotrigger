@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **macOS: Web Clipper extension detection.** New
+  `scripts/detect_extension.sh` probes every Chrome (stable) profile
+  under `~/Library/Application Support/Google/Chrome/` for the Obsidian
+  Web Clipper extension id `cnjifjpddelmedmihgijeibhnjfabmlf`. When
+  installed, it also extracts the most recent "save-to" paths from the
+  extension's LevelDB clip history.
+- `scripts/install.sh` now calls the probe by default and:
+  - Prints an `Extension: installed (profile: …)` line in the summary.
+  - When the extension is missing, prints the Chrome Web Store link so
+    the user can install it in one click.
+  - When the recent save-to paths do not match `CLIP_OUTPUT_DIR`, warns
+    loudly with the mismatch details so the user updates the Web
+    Clipper's Vaults settings *before* the first clip.
+  - Skippable via `--skip-extension-check` (useful in CI / headless).
+- `AGENT_INSTALL.md` step 4 documents the extension probe and adds a
+  new step 5 for the save-to consistency check.
+
 ## [0.5.0] - 2026-07-05
 
 ### Changed

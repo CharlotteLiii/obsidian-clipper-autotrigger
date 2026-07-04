@@ -143,9 +143,10 @@ Things the installer physically cannot verify. Ask the user each one, in
 order, and STOP if any answer is "no".
 
 1. **"Is the Obsidian Web Clipper Chrome extension installed?"**
-   If no → point them at
-   `https://chromewebstore.google.com/detail/obsidian-web-clipper/cnjifjpddelmedmihgijeibhnjfabmlf`
-   (or search "Obsidian Web Clipper" in the Chrome Web Store).
+   The installer probes for this automatically (see step 5 of its output
+   summary) and warns loudly if the extension is missing. If it is
+   missing, point the user at
+   `https://chromewebstore.google.com/detail/obsidian-web-clipper/cnjifjpddelmedmihgijeibhnjfabmlf`.
 2. **"Open Chrome, load any page, press the shortcut. Did the Clipper popup appear?"**
    If no → ask them to bind the shortcut at `chrome://extensions/shortcuts`,
    then tell you what combo they set. Rerun the installer with
@@ -164,6 +165,13 @@ order, and STOP if any answer is "no".
    *If the user opted into `--use-shortcut`, additionally verify a macOS
    Shortcut named `ObsidianClip` (or the value passed via
    `--shortcut-name`) exists in Shortcuts.app.*
+5. **Save-to folder must match `CLIP_OUTPUT_DIR`.**
+   The installer reads the Web Clipper's clip history (LevelDB in the
+   detected Chrome profile) and warns when its recent save-to paths do
+   not match your `CLIP_OUTPUT_DIR`. If you see that warning, open the
+   Web Clipper's *Vaults* settings inside Chrome and update the path
+   before the first clip — otherwise the file lands in the wrong folder
+   and the skill will not detect it.
 
 ---
 

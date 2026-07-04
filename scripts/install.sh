@@ -36,6 +36,7 @@ CLIP_SHORTCUT=""
 SHORTCUT_NAME=""
 USE_SHORTCUT=0          # 1 = user opted into the Shortcut path
 ENABLE_APPLE_EVENTS=1   # 1 = flip Chrome's Allow-JS-from-Apple-Events on
+CHECK_EXTENSION=1       # 1 = probe Chrome for the Web Clipper extension
 TARGET_ROOT=""          # if set, link ONLY here (single-host mode)
 ALL_HOSTS=1             # 1 = link into every detected host dir (default)
 
@@ -60,6 +61,9 @@ Options:
   --no-enable-apple-events   Skip flipping Chrome's "Allow JavaScript from
                              Apple Events" preference on. The login-wall
                              probe will be a no-op until enabled manually.
+  --skip-extension-check     Do not probe Chrome for the Obsidian Web
+                             Clipper extension or its recent save-to
+                             paths. Use in CI or headless setups.
   --target-root <path>       Link the skill ONLY into this directory
                              (skips multi-host autodetect).
   --all-hosts                Link into every detected agent skills dir
@@ -97,6 +101,7 @@ while [[ $# -gt 0 ]]; do
         --shortcut-name)    SHORTCUT_NAME="$2"; USE_SHORTCUT=1; shift 2 ;;
         --use-shortcut)     USE_SHORTCUT=1; shift ;;
         --no-enable-apple-events) ENABLE_APPLE_EVENTS=0; shift ;;
+        --skip-extension-check) CHECK_EXTENSION=0; shift ;;
         --target-root)      TARGET_ROOT="$2"; ALL_HOSTS=0; shift 2 ;;
         --all-hosts)        ALL_HOSTS=1; shift ;;
         --no-all-hosts)     ALL_HOSTS=0; shift ;;
@@ -266,6 +271,66 @@ if [[ "$ENABLE_APPLE_EVENTS" -eq 1 ]]; then
     fi
 fi
 
+# ── Chrome Web Clipper extension detection ───────────────────────
+
+EXTENSION_STATUS="skipped (--skip-extension-check)"
+EXTENSION_HINTS=""
+
+if [[ "$CHECK_EXTENSION" -eq 1 ]]; then
+    if [[ -x "$SKILL_DIR/scripts/detect_extension.sh" ]]; then
+        detect_out="$("$SKILL_DIR/scripts/detect_extension.sh" 2>/dev/null || true)"
+        installed_line="$(printf '%s\n' "$detect_out" | awk -F'\t' '$1=="EXT_INSTALLED"{print $2 "\t" $3; exit}')"
+        hint_line="$(printf '%s\n' "$detect_out" | awk -F'\t' '$1=="SAVE_TO_HINT"{print $2; exit}')"
+        installed_flag="${installed_line%%$'\t'*}"
+        installed_profile="${installed_line#*$'\t'}"
+
+        if [[ "$installed_flag" == "yes" ]]; then
+            EXTENSION_STATUS="installed (profile: $installed_profile)"
+        else
+            EXTENSION_STATUS="NOT installed — https://chromewebstore.google.com/detail/obsidian-web-clipper/cnjifjpddelmedmihgijeibhnjfabmlf"
+            warn "Obsidian Web Clipper extension not found in any Chrome profile."
+            warn "Install it before the first clip. Chrome Web Store link is printed in the summary below."
+        fi
+
+        EXTENSION_HINTS="$hint_line"
+
+        # Compare recent save-to paths from the extension against CLIP_OUTPUT_DIR
+        # / VAULT_PATH. This is a best-effort mismatch check; the extension does
+        # not expose the current configured save-to folder directly, so we
+        # rely on the most recent successful clip locations.
+        if [[ -n "$EXTENSION_HINTS" ]]; then
+            expected_rel="$CLIP_OUTPUT_DIR"
+            expected_abs=""
+            if [[ -n "$expected_rel" ]]; then
+                expected_abs="${VAULT_PATH%/}/$expected_rel"
+            fi
+
+            match_found=0
+            IFS='|' read -r -a hint_arr <<<"$EXTENSION_HINTS"
+            for hint in "${hint_arr[@]}"; do
+                [[ -z "$hint" ]] && continue
+                if [[ "$hint" == "$expected_rel" ]]; then match_found=1; break; fi
+                if [[ -n "$expected_abs" && "$hint" == "$expected_abs" ]]; then match_found=1; break; fi
+            done
+
+            if [[ "$match_found" -eq 0 ]]; then
+                warn "Web Clipper's recent save-to paths do not match your CLIP_OUTPUT_DIR."
+                warn "  Your config CLIP_OUTPUT_DIR: ${expected_rel:-<vault root>}"
+                warn "  Recent extension save-to paths (newest first):"
+                for hint in "${hint_arr[@]}"; do
+                    [[ -z "$hint" ]] && hint="<vault root>"
+                    warn "    - $hint"
+                done
+                warn "  Open the Web Clipper's 'Vaults' settings in Chrome and update the"
+                warn "  path to match, otherwise clips will land in the wrong folder and"
+                warn "  the skill will not detect the new Markdown files."
+            fi
+        fi
+    else
+        EXTENSION_STATUS="skipped (detect_extension.sh missing)"
+    fi
+fi
+
 # ── Detect host skills directories ───────────────────────────────
 
 detect_hosts() {
@@ -366,5 +431,14 @@ else
     printf '     and Automation permission for Google Chrome. macOS will prompt once.\n'
 fi
 printf '  4. Chrome AppleScript bridge: %s\n' "$APPLE_EVENTS_STATUS"
+printf '  5. Web Clipper extension:    %s\n' "$EXTENSION_STATUS"
+if [[ -n "$EXTENSION_HINTS" ]]; then
+    printf '     Recent save-to paths (newest first):\n'
+    IFS='|' read -r -a _hint_arr <<<"$EXTENSION_HINTS"
+    for _h in "${_hint_arr[@]}"; do
+        [[ -z "$_h" ]] && _h="<vault root>"
+        printf '       - %s\n' "$_h"
+    done
+fi
 printf '\n'
 printf 'Restart your agent (OpenClaw / Claude Code / Codex) to load the skill.\n'
