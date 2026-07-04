@@ -84,7 +84,7 @@ with **no extension** installed — all three retries will fail and the
 script stops. That's normal. Do **not** close that Chrome window; instead:
 
 1. Install [Obsidian Web Clipper][Obsidian Web Clipper] inside the new profile.
-2. Open its settings → set the "Save to" folder to match your `CLIP_OUTPUT_DIR`.
+2. Open its settings → set the "Quick clip" folder to match your `CLIP_OUTPUT_DIR`.
 3. Bind the extension shortcut at `chrome://extensions/shortcuts`.
 4. Rerun the clip — it should succeed on attempt 1.
 
