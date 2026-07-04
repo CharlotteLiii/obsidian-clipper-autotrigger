@@ -65,10 +65,16 @@ guess.
 
 | Input                | Required? | Example                                       |
 |----------------------|-----------|-----------------------------------------------|
-| Obsidian vault path  | **Yes**   | `/Users/me/Obsidian Vault` or `D:\Vault`      |
+| Obsidian vault path  | Optional* | `/Users/me/Obsidian Vault` or `D:\Vault`      |
 | Clip output subdir   | Optional  | `Inbox/Clippings` (leave blank = whole vault) |
 | Clip shortcut        | Optional  | `Shift+Alt+S` (Win), `Shift+Option+S` (mac)   |
+| Use macOS Shortcut   | Optional  | `--use-shortcut` (default is direct keystroke)|
 | Trigger driver (Win) | Optional  | `ahk` or `sendkeys` (default: `sendkeys`)     |
+
+\* macOS: the installer auto-reads the currently-open vault from
+`~/Library/Application Support/obsidian/obsidian.json` if you omit
+`--vault-path`. In non-interactive mode it uses that value directly and
+logs it. Pass `--vault-path` explicitly to override.
 
 If the user has an existing `obsidian.json` you can peek at it for the
 vault path, but **confirm the path with the user before writing it into
@@ -91,6 +97,14 @@ scripts/install.sh \
   --shortcut "$USER_SHORTCUT" \
   --all-hosts
 ```
+
+On macOS the installer defaults to **direct AppleScript keystroke** as
+the clip trigger — no `ObsidianClip` Shortcut needs to be created by
+hand. It also flips `com.google.Chrome AppleScriptEnabled` on so the
+login-wall probe works out of the box. Pass `--use-shortcut` to keep the
+old Shortcut-based trigger (requires the user to have built the Shortcut
+first), or `--no-enable-apple-events` to skip the Chrome preference
+write.
 
 ### Windows (PowerShell 7+)
 
@@ -125,8 +139,8 @@ CONFIG:
 
 ## Step 4 — Human preflight (unavoidable)
 
-Three things the installer physically cannot verify. Ask the user each
-one, in order, and STOP if any answer is "no".
+Things the installer physically cannot verify. Ask the user each one, in
+order, and STOP if any answer is "no".
 
 1. **"Is the Obsidian Web Clipper Chrome extension installed?"**
    If no → point them at
@@ -140,6 +154,16 @@ one, in order, and STOP if any answer is "no".
    The clipper writes into the currently open vault. If Obsidian is
    closed the extension will still capture, but the file will not appear
    until Obsidian starts.
+4. **macOS first-run permissions (direct-keystroke mode).**
+   On the first clip macOS will prompt for two things:
+   - **Accessibility** for Terminal / the agent binary that runs
+     `osascript` (System Settings > Privacy & Security > Accessibility).
+   - **Automation → Google Chrome** (also under Privacy & Security).
+   Tell the user to expect the prompts and approve them. If they miss
+   the prompt, they can toggle the permissions on manually later.
+   *If the user opted into `--use-shortcut`, additionally verify a macOS
+   Shortcut named `ObsidianClip` (or the value passed via
+   `--shortcut-name`) exists in Shortcuts.app.*
 
 ---
 
