@@ -124,9 +124,46 @@ SUCCESS https://example.com/article /path/to/generated-note.md
 - `Invalid URL`: the URL is not HTTP or HTTPS.
 - `Chrome could not open URL`: Google Chrome did not accept AppleScript control or failed to create a tab.
 - `Page never finished loading`: Chrome kept reporting the target tab as loading until `PAGE_LOAD_TIMEOUT`.
+- `SUSPECTED_LOGIN_WALL: <reason>`: after the page loaded, the login-wall
+  probe detected a login form, paywall node, auth-style URL, or a known
+  "please sign in / 请登录后阅读" phrase, and aborted before triggering the
+  clipper. Open the same URL in Google Chrome, sign in, then rerun. To
+  disable this check, set `LOGIN_WALL_CHECK=0` in `config/clipper.conf`;
+  the false-positive threshold for "short body text" is tunable via
+  `LOGIN_WALL_MIN_TEXT`.
+- `Login-wall probe error`: the probe could not execute JavaScript in
+  Chrome. Enable it once in Chrome > View > Developer > **Allow
+  JavaScript from Apple Events**. The script logs the error and
+  continues (does not abort the clip), so leaving this off just means
+  you lose the safety net.
 - `Shortcut failed`: `shortcuts run "$SHORTCUT_NAME"` exited nonzero.
 - `Direct shortcut keystroke failed`: the `Shift+Option+S` fallback also failed. Check Accessibility permissions.
 - `No Markdown file was generated`: no new or modified `.md` file was detected in the vault (or `CLIP_OUTPUT_DIR`) within `CLIP_TIMEOUT` after all retry attempts.
+
+## Login-wall probe (macOS)
+
+Mirrors the Windows CDP probe. After `wait_for_page_load` and before
+triggering the clipper, the script runs
+`applescripts/chrome_login_wall_probe.scpt` via `osascript`, which
+calls Chrome's `execute javascript` command in the target tab. The JS
+heuristic checks the final URL path, the DOM (`input[type=password]`,
+paywall / login-wall class/id/data attributes), and body text against
+a list of EN and zh-CN login / paywall phrases. Any strong signal, or
+a short body plus a weak signal, aborts the URL with
+`SUSPECTED_LOGIN_WALL: <reason>` and no keystroke is sent.
+
+One-time setup: in Google Chrome, open **View → Developer → Allow
+JavaScript from Apple Events** (the menu entry is a toggle). Without
+it, the probe cannot inspect the page — it logs a hint and lets the
+clip proceed, matching the pre-probe behaviour.
+
+Config knobs in `config/clipper.conf`:
+
+- `LOGIN_WALL_CHECK` (default `1`): `1` runs the probe, `0` skips it.
+- `LOGIN_WALL_MIN_TEXT` (default `300`): body-text length below which
+  the probe treats an accompanying weak signal as suspicious. Raise if
+  you clip many legitimately short pages that get false-flagged.
+
 
 ## Design Notes
 

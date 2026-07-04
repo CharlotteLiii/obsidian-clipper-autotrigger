@@ -103,6 +103,8 @@ $ChromeExe        = Get-Cfg 'CHROME_EXE' ''
 $DebugPort        = [int](Get-Cfg 'CHROME_DEBUG_PORT' 9222)
 $UserDataDir      = Get-Cfg 'CHROME_USER_DATA_DIR' ''
 $ClipShortcut     = Get-Cfg 'CLIP_SHORTCUT' 'Shift+Alt+S'
+$LoginWallCheck   = (Get-Cfg 'LOGIN_WALL_CHECK' '1')
+$LoginWallMinText = [int](Get-Cfg 'LOGIN_WALL_MIN_TEXT' 300)
 
 # ── Shortcut parsing ──────────────────────────────────────
 
@@ -178,6 +180,10 @@ function Test-Config {
     }
     try { $script:ClipShortcutParsed = Parse-ClipShortcut $ClipShortcut } catch {
         Write-Fail $_.Exception.Message
+        return $false
+    }
+    if ($LoginWallCheck -notin @('0','1','true','false','True','False')) {
+        Write-Fail "LOGIN_WALL_CHECK must be 0/1 (got '$LoginWallCheck')"
         return $false
     }
     return $true
@@ -349,6 +355,25 @@ function Clip-OneUrl {
             return $false
         }
 
+        if ($LoginWallCheck -in @('1','true','True')) {
+            try {
+                $probe = Test-CdpLoginWall -WebSocketUrl $wsUrl -MinTextLen $LoginWallMinText -TimeoutSec 5
+                $sig = $probe.Signals
+                Write-Log ("Login-wall probe: urlHit={0} pwd={1} paywall={2} phrase={3} textLen={4}" -f `
+                    $sig.urlHit, $sig.passwordInput, $sig.paywallNode, ($sig.textHit ?? '-'), $sig.textLen)
+                if ($probe.IsWall) {
+                    Write-Fail "SUSPECTED_LOGIN_WALL: $($probe.Reason)"
+                    if ($probe.FinalUrl) { Write-Log "  final URL: $($probe.FinalUrl)" }
+                    if ($probe.Title)    { Write-Log "  page title: $($probe.Title)" }
+                    Write-Log 'Aborting this URL before triggering clipper. Sign in inside the driven Chrome profile and retry.'
+                    Write-Log 'To disable this check, set LOGIN_WALL_CHECK=0 in the config.'
+                    return $false
+                }
+            } catch {
+                Write-Log "Login-wall probe failed (continuing anyway): $_"
+            }
+        }
+
         for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
             Write-Log "Triggering clipper via '$TriggerDriver' (attempt $attempt/$MaxRetries)..."
             $before = Get-MarkdownSnapshot
@@ -399,6 +424,8 @@ if ($ClipOutputDir) {
 }
 Write-Log "Trigger driver: $TriggerDriver"
 Write-Log "Clip shortcut: $ClipShortcut"
+Write-Log ("Login-wall check: {0} (min body text {1} chars)" -f `
+    ($(if ($LoginWallCheck -in @('1','true','True')) { 'on' } else { 'off' })), $LoginWallMinText)
 
 $invalid = @()
 foreach ($u in $Urls) {

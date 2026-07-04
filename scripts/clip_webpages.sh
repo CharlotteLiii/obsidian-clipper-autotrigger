@@ -92,6 +92,8 @@ CLIP_TIMEOUT="${CLIP_TIMEOUT:-30}"
 MAX_RETRIES="${MAX_RETRIES:-3}"
 POLL_INTERVAL="${POLL_INTERVAL:-1}"
 CHECK_SHORTCUT_EXISTS="${CHECK_SHORTCUT_EXISTS:-1}"
+LOGIN_WALL_CHECK="${LOGIN_WALL_CHECK:-1}"
+LOGIN_WALL_MIN_TEXT="${LOGIN_WALL_MIN_TEXT:-300}"
 
 validate_config() {
   local numeric_re='^[0-9]+([.][0-9]+)?$'
@@ -135,6 +137,14 @@ validate_config() {
   fi
   if [[ "$CHECK_SHORTCUT_EXISTS" != "0" && "$CHECK_SHORTCUT_EXISTS" != "1" ]]; then
     fail "CHECK_SHORTCUT_EXISTS must be 0 or 1"
+    return 1
+  fi
+  if [[ "$LOGIN_WALL_CHECK" != "0" && "$LOGIN_WALL_CHECK" != "1" ]]; then
+    fail "LOGIN_WALL_CHECK must be 0 or 1"
+    return 1
+  fi
+  if [[ ! "$LOGIN_WALL_MIN_TEXT" =~ $integer_re ]]; then
+    fail "LOGIN_WALL_MIN_TEXT must be an integer"
     return 1
   fi
   if ! validate_clip_shortcut "$CLIP_SHORTCUT"; then
@@ -334,6 +344,46 @@ close_chrome_tab() {
   osascript "$APPLE_DIR/chrome_close_tab.scpt" "$window_id" "$tab_id" >/dev/null
 }
 
+# ── login-wall probe ────────────────────────────────────────────────
+#
+# Post-load heuristic mirroring the Windows Test-CdpLoginWall. Runs a JS
+# probe in the target tab via Chrome's AppleScript `execute javascript`
+# and inspects final URL / DOM / body text for login or paywall signals.
+#
+# Requires Chrome > View > Developer > "Allow JavaScript from Apple Events"
+# to be enabled once. If disabled, the probe errors out and this function
+# logs the reason and returns 2 (caller: continue anyway).
+#
+# Args: window_id tab_id
+# Return: 0 = clear, 1 = login wall detected, 2 = probe error
+# Stdout on hit: SUSPECTED_LOGIN_WALL: <reason>|<finalUrl>|<title>
+probe_login_wall() {
+  local window_id="$1"
+  local tab_id="$2"
+  local raw is_wall reason final_url doc_title url_hit pwd_input paywall_node text_hit text_len
+
+  if ! raw="$(osascript "$APPLE_DIR/chrome_login_wall_probe.scpt" "$window_id" "$tab_id" "$LOGIN_WALL_MIN_TEXT" 2>&1)"; then
+    log "Login-wall probe failed (continuing anyway): $raw"
+    return 2
+  fi
+
+  IFS=$'\t' read -r is_wall reason final_url doc_title url_hit pwd_input paywall_node text_hit text_len <<<"$raw"
+
+  if [[ "$is_wall" == "error" ]]; then
+    log "Login-wall probe error (continuing anyway): $reason"
+    log "  hint: enable Chrome > View > Developer > Allow JavaScript from Apple Events, or set LOGIN_WALL_CHECK=0."
+    return 2
+  fi
+
+  log "Login-wall probe: urlHit=${url_hit} pwd=${pwd_input} paywall=${paywall_node} phrase=${text_hit:--} textLen=${text_len}"
+
+  if [[ "$is_wall" == "1" ]]; then
+    printf 'SUSPECTED_LOGIN_WALL: %s|%s|%s\n' "$reason" "$final_url" "$doc_title"
+    return 1
+  fi
+  return 0
+}
+
 # ── page load ───────────────────────────────────────────────────────
 
 wait_for_page_load() {
@@ -447,6 +497,20 @@ clip_one_url() {
     return 1
   fi
 
+  if [[ "$LOGIN_WALL_CHECK" == "1" ]]; then
+    local probe_out probe_rc
+    probe_out="$(probe_login_wall "$window_id" "$tab_id")"
+    probe_rc=$?
+    if (( probe_rc == 1 )); then
+      fail "$probe_out"
+      log "Aborting this URL before triggering clipper. Sign in inside the driven Chrome profile and retry."
+      log "To disable this check, set LOGIN_WALL_CHECK=0 in the config."
+      log "Closing tab after login-wall abort..."
+      close_chrome_tab "$window_id" "$tab_id" || true
+      return 1
+    fi
+  fi
+
   for ((attempt = 1; attempt <= MAX_RETRIES; attempt++)); do
     log "Running Shortcut '$SHORTCUT_NAME' (attempt $attempt/$MAX_RETRIES)..."
     before_snapshot="$(mktemp "${TMPDIR:-/tmp}/obsidian-clip-before.XXXXXX")"
@@ -529,6 +593,11 @@ main() {
   fi
   log "Shortcut: $SHORTCUT_NAME"
   log "Clip keystroke: $CLIP_SHORTCUT"
+  if [[ "$LOGIN_WALL_CHECK" == "1" ]]; then
+    log "Login-wall check: on (min body text ${LOGIN_WALL_MIN_TEXT} chars)"
+  else
+    log "Login-wall check: off"
+  fi
 
   invalid_count=0
   for url in "${URLS[@]}"; do

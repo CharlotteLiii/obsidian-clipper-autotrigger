@@ -104,3 +104,11 @@ an existing profile that has the extension and is not currently open.
   (Settings → Privacy & security → For developers), or run the installer
   from an elevated PowerShell. A directory junction or copy is used as a
   fallback either way.
+- **`ERROR: SUSPECTED_LOGIN_WALL: ...`** — the post-load probe detected a
+  login form, paywall node, auth-style URL, or a known "please sign in /
+  请登录后阅读" phrase, and aborted before triggering the clipper. Open
+  the same URL in the Chrome profile the skill drives (the one with
+  `--user-data-dir=...\Obsidian-Clipper-AutoTrigger\chrome-profile`),
+  sign in, then rerun. To disable the check, set `LOGIN_WALL_CHECK=0`
+  in `config/clipper.win.conf`; the false-positive threshold for
+  "short body text" is tunable via `LOGIN_WALL_MIN_TEXT`.

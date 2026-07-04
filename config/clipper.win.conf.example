@@ -29,3 +29,12 @@ RENDER_GRACE_SECONDS=3
 CLIP_TIMEOUT=30
 MAX_RETRIES=3
 POLL_INTERVAL=1
+
+# Post-load login-wall detection (Windows-only, CDP-based).
+# 1 = probe DOM/URL/text for login or paywall pages before triggering the
+#     clipper. If detected, the script aborts this URL and logs
+#     SUSPECTED_LOGIN_WALL instead of producing an empty note.
+# 0 = skip the probe (behaves like the previous version).
+LOGIN_WALL_CHECK=1
+# Body text shorter than this + a weak signal is treated as suspicious.
+LOGIN_WALL_MIN_TEXT=300
