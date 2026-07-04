@@ -74,7 +74,7 @@ $ scripts/clip_webpages.sh "https://example.com/article"
 按下面步骤操作：
 
 1. 在这个新 profile 里安装 [Obsidian Web Clipper][Obsidian Web Clipper] 扩展。
-2. 打开扩展设置，把"Save to"目录设成和你 `CLIP_OUTPUT_DIR` 一致的路径。
+2. 打开扩展设置，把"Quick clip"目录设成和你 `CLIP_OUTPUT_DIR` 一致的路径。
 3. 到 `chrome://extensions/shortcuts` 绑定快捷键。
 4. 重新跑一次 —— 第一次尝试就会成功。
 
