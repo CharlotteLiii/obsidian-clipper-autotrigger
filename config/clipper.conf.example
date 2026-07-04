@@ -5,10 +5,15 @@
 # Absolute path to the Obsidian vault to monitor.
 VAULT_PATH="/absolute/path/to/your/Obsidian Vault"
 
-# macOS Shortcut that triggers the Obsidian Web Clipper extension.
-# Create it in the Shortcuts app (see references/usage.md) or use the
-# supplied template at applescripts/shortcut_obsidian_clip_template.applescript.
-SHORTCUT_NAME="ObsidianClip"
+# Optional: name of a macOS Shortcut (Shortcuts.app) that triggers the
+# Obsidian Web Clipper extension. Leave empty to skip the Shortcut path
+# entirely and use direct AppleScript keystroke as the primary method.
+#
+# Leaving this empty removes one manual setup step (no Shortcut to create
+# by hand) but still requires macOS Accessibility permission on the first
+# run for osascript to send keystrokes. Set to a Shortcut name only if you
+# already have one built or want to reuse it across other tools.
+SHORTCUT_NAME=""
 
 # Relative path inside VAULT_PATH where the Obsidian Web Clipper extension
 # saves Markdown files. When set, only this subdirectory is scanned for new
@@ -21,7 +26,9 @@ CLIP_OUTPUT_DIR="Inbox/Clippings"
 # Modifiers: Shift, Ctrl/Control, Alt/Option, Cmd/Meta. Case-insensitive.
 CLIP_SHORTCUT="Shift+Option+S"
 
-# Fail before opening Chrome when the configured Shortcut is not found.
+# When SHORTCUT_NAME is set, fail before opening Chrome if that Shortcut
+# is not found. Ignored when SHORTCUT_NAME is empty (direct keystroke
+# mode does not depend on Shortcuts.app).
 CHECK_SHORTCUT_EXISTS=1
 
 # Timing knobs (seconds).

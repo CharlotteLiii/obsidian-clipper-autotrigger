@@ -83,7 +83,7 @@ fi
 source "$CONFIG_FILE"
 
 VAULT_PATH="${VAULT_PATH:-}"
-SHORTCUT_NAME="${SHORTCUT_NAME:-ObsidianClip}"
+SHORTCUT_NAME="${SHORTCUT_NAME-}"
 CLIP_OUTPUT_DIR="${CLIP_OUTPUT_DIR:-}"
 CLIP_SHORTCUT="${CLIP_SHORTCUT:-Shift+Option+S}"
 PAGE_LOAD_TIMEOUT="${PAGE_LOAD_TIMEOUT:-45}"
@@ -112,8 +112,7 @@ validate_config() {
     return 1
   fi
   if [[ -z "$SHORTCUT_NAME" ]]; then
-    fail "SHORTCUT_NAME is empty in $CONFIG_FILE"
-    return 1
+    :  # Direct-keystroke mode: no Shortcut required.
   fi
   if [[ ! "$PAGE_LOAD_TIMEOUT" =~ $integer_re ]]; then
     fail "PAGE_LOAD_TIMEOUT must be an integer"
@@ -158,9 +157,9 @@ validate_config() {
     fail "shortcuts CLI is not available on this system"
     return 1
   fi
-  if [[ "$CHECK_SHORTCUT_EXISTS" == "1" ]] && ! shortcut_exists; then
+  if [[ -n "$SHORTCUT_NAME" && "$CHECK_SHORTCUT_EXISTS" == "1" ]] && ! shortcut_exists; then
     fail "Shortcut not found: $SHORTCUT_NAME"
-    fail "Open the Shortcuts app and create/rename the Shortcut, or set SHORTCUT_NAME in $CONFIG_FILE to the exact Shortcut name."
+    fail "Open the Shortcuts app and create/rename the Shortcut, or clear SHORTCUT_NAME in $CONFIG_FILE to use direct keystroke mode."
     return 1
   fi
 }
@@ -445,9 +444,20 @@ send_clip_shortcut() {
   return 0
 }
 
+# Primary clip trigger: use the macOS Shortcut when SHORTCUT_NAME is
+# configured, otherwise send the keystroke directly via AppleScript.
+trigger_clip() {
+  if [[ -n "$SHORTCUT_NAME" ]]; then
+    run_shortcut
+  else
+    send_clip_shortcut
+  fi
+}
+
 wait_for_markdown() {
   local before_snapshot="$1"
   local start now elapsed detected
+
 
   start="$(date +%s)"
   while true; do
@@ -512,20 +522,24 @@ clip_one_url() {
   fi
 
   for ((attempt = 1; attempt <= MAX_RETRIES; attempt++)); do
-    log "Running Shortcut '$SHORTCUT_NAME' (attempt $attempt/$MAX_RETRIES)..."
+    if [[ -n "$SHORTCUT_NAME" ]]; then
+      log "Triggering clipper via Shortcut '$SHORTCUT_NAME' (attempt $attempt/$MAX_RETRIES)..."
+    else
+      log "Triggering clipper via direct keystroke '$CLIP_SHORTCUT' (attempt $attempt/$MAX_RETRIES)..."
+    fi
     before_snapshot="$(mktemp "${TMPDIR:-/tmp}/obsidian-clip-before.XXXXXX")"
     markdown_snapshot >"$before_snapshot"
     attempt_started_at="$(date +%s)"
 
-    if ! run_shortcut; then
+    if ! trigger_clip; then
       cleanup_failed_root_untitled_clips "$attempt_started_at"
       rm -f "$before_snapshot"
       if (( attempt == MAX_RETRIES )); then
-        log "Closing tab after final Shortcut failure..."
+        log "Closing tab after final trigger failure..."
         close_chrome_tab "$window_id" "$tab_id" || true
         return 1
       fi
-      log "Retrying after Shortcut failure..."
+      log "Retrying after trigger failure..."
       continue
     fi
 
@@ -540,11 +554,13 @@ clip_one_url() {
     fi
 
     rm -f "$before_snapshot"
-    log "No Markdown file generated via Shortcut on attempt $attempt."
+    log "No Markdown file generated on attempt $attempt."
     cleanup_failed_root_untitled_clips "$attempt_started_at"
 
-    # Fallback: try the direct keystroke before the next full retry.
-    if (( attempt < MAX_RETRIES )); then
+    # Fallback: when the primary trigger was the Shortcut, try direct keystroke
+    # once before the next full retry. When the primary is already direct
+    # keystroke, the outer retry loop will repeat it.
+    if [[ -n "$SHORTCUT_NAME" ]] && (( attempt < MAX_RETRIES )); then
       log "Trying direct $CLIP_SHORTCUT fallback..."
       before_snapshot="$(mktemp "${TMPDIR:-/tmp}/obsidian-clip-before.XXXXXX")"
       markdown_snapshot >"$before_snapshot"
@@ -591,7 +607,7 @@ main() {
   else
     log "Clip output dir: (entire vault)"
   fi
-  log "Shortcut: $SHORTCUT_NAME"
+  log "Shortcut: ${SHORTCUT_NAME:-<disabled — using direct keystroke>}"
   log "Clip keystroke: $CLIP_SHORTCUT"
   if [[ "$LOGIN_WALL_CHECK" == "1" ]]; then
     log "Login-wall check: on (min body text ${LOGIN_WALL_MIN_TEXT} chars)"

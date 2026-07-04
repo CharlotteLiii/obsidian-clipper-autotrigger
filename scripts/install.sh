@@ -34,6 +34,8 @@ VAULT_PATH=""
 CLIP_OUTPUT_DIR=""
 CLIP_SHORTCUT=""
 SHORTCUT_NAME=""
+USE_SHORTCUT=0          # 1 = user opted into the Shortcut path
+ENABLE_APPLE_EVENTS=1   # 1 = flip Chrome's Allow-JS-from-Apple-Events on
 TARGET_ROOT=""          # if set, link ONLY here (single-host mode)
 ALL_HOSTS=1             # 1 = link into every detected host dir (default)
 
@@ -48,8 +50,16 @@ Options:
                              Web Clipper saves notes. Empty = whole vault.
   --shortcut <combo>         Key combo bound to the Web Clipper in Chrome
                              (e.g. "Shift+Option+S").
-  --shortcut-name <name>     Name of the macOS Shortcut that triggers the
-                             clipper (default: ObsidianClip).
+  --shortcut-name <name>     Name of an existing macOS Shortcut that
+                             triggers the clipper. When omitted, direct
+                             AppleScript keystroke is used (no manual
+                             Shortcut creation required).
+  --use-shortcut             Enable the macOS Shortcut path. Requires the
+                             Shortcut to already exist (default name:
+                             ObsidianClip).
+  --no-enable-apple-events   Skip flipping Chrome's "Allow JavaScript from
+                             Apple Events" preference on. The login-wall
+                             probe will be a no-op until enabled manually.
   --target-root <path>       Link the skill ONLY into this directory
                              (skips multi-host autodetect).
   --all-hosts                Link into every detected agent skills dir
@@ -84,7 +94,9 @@ while [[ $# -gt 0 ]]; do
         --vault-path)       VAULT_PATH="$2"; shift 2 ;;
         --clip-output-dir)  CLIP_OUTPUT_DIR="$2"; shift 2 ;;
         --shortcut)         CLIP_SHORTCUT="$2"; shift 2 ;;
-        --shortcut-name)    SHORTCUT_NAME="$2"; shift 2 ;;
+        --shortcut-name)    SHORTCUT_NAME="$2"; USE_SHORTCUT=1; shift 2 ;;
+        --use-shortcut)     USE_SHORTCUT=1; shift ;;
+        --no-enable-apple-events) ENABLE_APPLE_EVENTS=0; shift ;;
         --target-root)      TARGET_ROOT="$2"; ALL_HOSTS=0; shift 2 ;;
         --all-hosts)        ALL_HOSTS=1; shift ;;
         --no-all-hosts)     ALL_HOSTS=0; shift ;;
@@ -128,12 +140,44 @@ prompt() {
     printf '%s' "${ans:-$default}"
 }
 
+# ── Vault auto-detection ─────────────────────────────────────────
+
+detect_vault_from_obsidian() {
+    # Emit the path of the currently-open vault from Obsidian's registry.
+    # Prints nothing if unavailable.
+    local registry="$HOME/Library/Application Support/obsidian/obsidian.json"
+    [[ -f "$registry" ]] || return 0
+    if ! command -v python3 >/dev/null 2>&1; then
+        return 0
+    fi
+    python3 - "$registry" <<'PY' 2>/dev/null || true
+import json, sys
+try:
+    with open(sys.argv[1], 'r', encoding='utf-8') as f:
+        data = json.load(f)
+except Exception:
+    sys.exit(0)
+vaults = data.get('vaults') or {}
+# Prefer the one marked open=true, then the most recent by ts.
+open_vaults = [v for v in vaults.values() if v.get('open')]
+candidates = open_vaults if open_vaults else list(vaults.values())
+candidates.sort(key=lambda v: v.get('ts', 0), reverse=True)
+for v in candidates:
+    path = v.get('path')
+    if path:
+        print(path)
+        break
+PY
+}
+
 # ── Collect required values ──────────────────────────────────────
+
+DETECTED_VAULT="$(detect_vault_from_obsidian)"
 
 if [[ -z "$VAULT_PATH" ]]; then
     if [[ "$INTERACTIVE" == "yes" ]]; then
         while [[ -z "$VAULT_PATH" || ! -d "$VAULT_PATH" ]]; do
-            VAULT_PATH="$(prompt 'Absolute path to your Obsidian vault' '')"
+            VAULT_PATH="$(prompt 'Absolute path to your Obsidian vault' "$DETECTED_VAULT")"
             if [[ -z "$VAULT_PATH" ]]; then
                 warn 'Vault path is required.'
             elif [[ ! -d "$VAULT_PATH" ]]; then
@@ -141,8 +185,11 @@ if [[ -z "$VAULT_PATH" ]]; then
                 VAULT_PATH=""
             fi
         done
+    elif [[ -n "$DETECTED_VAULT" && -d "$DETECTED_VAULT" ]]; then
+        VAULT_PATH="$DETECTED_VAULT"
+        log "Auto-detected vault from Obsidian registry: $VAULT_PATH"
     else
-        die '--vault-path is required in non-interactive mode.'
+        die '--vault-path is required in non-interactive mode (could not auto-detect from Obsidian).'
     fi
 elif [[ ! -d "$VAULT_PATH" ]]; then
     warn "Vault path does not exist yet: $VAULT_PATH (continuing anyway)"
@@ -150,11 +197,15 @@ fi
 
 CLIP_OUTPUT_DIR="${CLIP_OUTPUT_DIR:-$(prompt 'Relative save-to folder inside the vault (blank = whole vault)' '')}"
 CLIP_SHORTCUT="${CLIP_SHORTCUT:-$(prompt 'Clip shortcut bound in Chrome' 'Shift+Option+S')}"
-SHORTCUT_NAME="${SHORTCUT_NAME:-$(prompt 'macOS Shortcut name that triggers the clipper' 'ObsidianClip')}"
 
-# Fill remaining defaults for non-interactive mode where prompt returned empty
+# Only prompt for a Shortcut name when the user opted into that path.
+if [[ "$USE_SHORTCUT" -eq 1 ]]; then
+    SHORTCUT_NAME="${SHORTCUT_NAME:-$(prompt 'macOS Shortcut name that triggers the clipper' 'ObsidianClip')}"
+    [[ -z "$SHORTCUT_NAME" ]] && SHORTCUT_NAME="ObsidianClip"
+fi
+
+# Fill remaining defaults
 [[ -z "$CLIP_SHORTCUT" ]] && CLIP_SHORTCUT="Shift+Option+S"
-[[ -z "$SHORTCUT_NAME" ]] && SHORTCUT_NAME="ObsidianClip"
 
 # ── Seed / update config/clipper.conf ────────────────────────────
 
@@ -197,6 +248,23 @@ log "Config written: $CFG_ACTIVE"
 
 # Ensure entrypoint is executable
 chmod +x "$SKILL_DIR/scripts/clip_webpages.sh" 2>/dev/null || true
+
+# ── Enable Chrome's AppleScript / JS-from-Apple-Events bridge ────
+
+APPLE_EVENTS_STATUS="skipped (--no-enable-apple-events)"
+if [[ "$ENABLE_APPLE_EVENTS" -eq 1 ]]; then
+    if command -v defaults >/dev/null 2>&1; then
+        if defaults write com.google.Chrome AppleScriptEnabled -bool true 2>/dev/null; then
+            APPLE_EVENTS_STATUS="enabled (com.google.Chrome AppleScriptEnabled=true)"
+            log "Chrome AppleScript / JS-from-Apple-Events preference set. Restart Chrome for it to take effect."
+        else
+            APPLE_EVENTS_STATUS="failed to write defaults; enable manually via Chrome > View > Developer > Allow JavaScript from Apple Events"
+            warn "Could not set com.google.Chrome AppleScriptEnabled via 'defaults'. Enable it once by hand from Chrome's View > Developer menu."
+        fi
+    else
+        APPLE_EVENTS_STATUS="skipped (no 'defaults' command)"
+    fi
+fi
 
 # ── Detect host skills directories ───────────────────────────────
 
@@ -287,9 +355,16 @@ printf '  %s\n' "$CFG_ACTIVE"
 printf 'SOURCE:\n'
 printf '  %s\n' "$SKILL_DIR"
 printf '\n'
-printf 'Before your first clip, verify these three things:\n'
+printf 'Before your first clip, verify these things:\n'
 printf '  1. Chrome has the "Obsidian Web Clipper" extension installed and configured.\n'
 printf '  2. Press %s manually in Chrome to confirm the popup opens.\n' "$CLIP_SHORTCUT"
-printf '  3. macOS only: the "%s" Shortcut exists (see references/usage.md).\n' "$SHORTCUT_NAME"
+if [[ -n "$SHORTCUT_NAME" ]]; then
+    printf '  3. macOS Shortcut named "%s" exists (see references/usage.md).\n' "$SHORTCUT_NAME"
+else
+    printf '  3. On the first clip, grant Terminal / your agent Accessibility\n'
+    printf '     permission (System Settings > Privacy & Security > Accessibility)\n'
+    printf '     and Automation permission for Google Chrome. macOS will prompt once.\n'
+fi
+printf '  4. Chrome AppleScript bridge: %s\n' "$APPLE_EVENTS_STATUS"
 printf '\n'
 printf 'Restart your agent (OpenClaw / Claude Code / Codex) to load the skill.\n'

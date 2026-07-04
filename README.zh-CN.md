@@ -10,8 +10,10 @@
 ![Platform: macOS · Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-blue)
 ![Requires: PowerShell 7+ on Windows](https://img.shields.io/badge/pwsh-7%2B-informational)
 
-同时支持 **macOS**（AppleScript + Shortcuts）和 **Windows**（Chrome
+同时支持 **macOS**（AppleScript + 可选 Shortcuts）和 **Windows**（Chrome
 DevTools 协议 + AutoHotkey / SendKeys）。两个平台使用相同的 CLI 契约。
+macOS 默认通过 AppleScript 直接注入键盘，不再需要手动建 macOS
+Shortcut。
 
 ```console
 $ scripts/clip_webpages.sh "https://example.com/article"
@@ -19,7 +21,7 @@ $ scripts/clip_webpages.sh "https://example.com/article"
 [2026-07-04 17:00:00] Vault path: /Users/me/Obsidian Vault
 [2026-07-04 17:00:01] Opening Chrome for: https://example.com/article
 [2026-07-04 17:00:03] Page loaded: Example Article — example.com
-[2026-07-04 17:00:04] Running Shortcut 'ObsidianClip' (attempt 1/3)...
+[2026-07-04 17:00:04] Triggering clipper via direct keystroke 'Shift+Option+S' (attempt 1/3)...
 [2026-07-04 17:00:06] Markdown detected: /Users/me/Obsidian Vault/Inbox/Clippings/Example Article.md
 [2026-07-04 17:00:06] Result: SUCCEEDED
 ```
@@ -76,7 +78,7 @@ $ scripts/clip_webpages.sh "https://example.com/article"
 3. 到 `chrome://extensions/shortcuts` 绑定快捷键。
 4. 重新跑一次 —— 第一次尝试就会成功。
 
-macOS 完整流程（含 Shortcut 模板）见
+macOS 完整流程（含可选的 Shortcut 路径）见
 [`references/usage.md`](references/usage.md)，
 Windows 见 [`references/usage-windows.md`](references/usage-windows.md)。
 
@@ -161,7 +163,7 @@ bootstrap 会：自动识别你的 Agent skills 目录（OpenClaw → Claude Cod
 | `VAULT_PATH`           | Obsidian vault 的绝对路径，必须存在。                                                                                       | *（必填）*                         |
 | `CLIP_OUTPUT_DIR`      | vault 里 Web Clipper 保存 Markdown 的相对目录，需和扩展"Save to"设置一致。留空则扫描整个 vault。                            | `""`（整个 vault）                 |
 | `CLIP_SHORTCUT`        | 你在 `chrome://extensions/shortcuts` 里为 Obsidian Web Clipper 绑定的按键组合，必须和 Chrome 里完全一致。                    | `Shift+Option+S` / `Shift+Alt+S`   |
-| `SHORTCUT_NAME`        | *（仅 macOS）* 触发扩展的 macOS Shortcut 名称。模板见 `references/usage.md`。                                                | `ObsidianClip`                     |
+| `SHORTCUT_NAME`        | *（仅 macOS，可选）* 用来触发扩展的 macOS Shortcut 名称。留空则使用 AppleScript 直接注入键盘（默认）。模板见 `references/usage.md`。 | *（空）*                          |
 | `TRIGGER_DRIVER`       | *（仅 Windows）* `ahk`（AutoHotkey v2）或 `sendkeys`。                                                                       | `sendkeys`                         |
 | `CHROME_USER_DATA_DIR` | *（仅 Windows）* 可选，用于指定驱动的 Chrome profile。留空则在 `%LOCALAPPDATA%` 下创建一个专属 profile。                     | `""`                               |
 | `LOGIN_WALL_CHECK`     | `1` 启用页面加载后的登录墙探针（Windows 走 CDP，macOS 走 AppleScript），命中则中止该 URL；`0` 关闭探针（等同旧版行为）。       | `1`                                |

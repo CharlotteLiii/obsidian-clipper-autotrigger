@@ -1,7 +1,7 @@
 ---
 name: obsidian-clipper-autotrigger
 description: Clip one or more webpages into an Obsidian vault by driving Google Chrome and the installed Obsidian Web Clipper extension. Works on macOS (AppleScript + Shortcuts) and Windows (CDP + AutoHotkey/SendKeys). Use when the user asks to clip/save/archive/capture webpages or URLs into Obsidian, especially prompts like "Clip this webpage", "Clip these webpages", "save this article to Obsidian", or "use Obsidian Web Clipper".
-version: 0.4.0
+version: 0.5.0
 homepage: https://github.com/CharlotteLiii/obsidian-clipper-autotrigger
 license: MIT
 ---
@@ -23,11 +23,17 @@ the script — do not just run and let it fail.
    On Windows the skill launches a dedicated `--user-data-dir` profile
    the first time it runs; the extension must be installed *inside that
    profile* (see Operational Notes below).
-2. **Shortcut is bound and works in Chrome.** Ask the user to open any
-   page in that Chrome profile and press the clip keystroke manually,
-   confirming the Web Clipper popup opens. If nothing happens, the
-   extension shortcut is not bound — direct the user to
-   `chrome://extensions/shortcuts` to bind it.
+2. **Chrome extension shortcut is bound and works.** Ask the user to
+   open any page in the target Chrome profile and press the clip
+   keystroke manually, confirming the Web Clipper popup opens. If
+   nothing happens, the extension shortcut is not bound — direct the
+   user to `chrome://extensions/shortcuts` to bind it.
+
+   On **macOS**, the skill activates Chrome and sends this keystroke
+   directly via AppleScript. No `ObsidianClip` macOS Shortcut is
+   required by default. If the user set `SHORTCUT_NAME` in
+   `config/clipper.conf` (opt-in), that Shortcut must exist in
+   Shortcuts.app before the first clip.
 3. **Configured shortcut must match Chrome.** The value of
    `CLIP_SHORTCUT` in `config/clipper.conf` (macOS) or `CLIP_SHORTCUT` in
    `config/clipper.win.conf` (Windows) must equal the key combo actually
@@ -81,11 +87,16 @@ CLI contract: a config file, an optional `--dry-run`, and one or more URLs.
 - **macOS**: `scripts/clip_webpages.sh URL [URL ...]`
 - **Windows**: `pwsh -NoProfile -File scripts/clip_webpages.ps1 URL [URL ...]`
 
-On macOS the skill drives Chrome via AppleScript and triggers the clipper
-through the `ObsidianClip` macOS Shortcut (with `Shift+Option+S` as a
-fallback). On Windows the skill drives Chrome via the DevTools Protocol
-and triggers the clipper via AutoHotkey v2 or `SendKeys`. Windows requires
-PowerShell 7+; if unavailable, install with `winget install Microsoft.PowerShell`.
+On macOS the skill drives Chrome via AppleScript and, by default,
+triggers the clipper by sending the configured keystroke directly to
+Chrome (`applescripts/chrome_send_clip_shortcut.scpt`). No macOS
+Shortcut needs to be created. If the user opts into the Shortcut path
+by setting `SHORTCUT_NAME` in `config/clipper.conf`, the skill runs
+`shortcuts run "$SHORTCUT_NAME"` first and falls back to direct
+keystroke only if that produces no Markdown. On Windows the skill
+drives Chrome via the DevTools Protocol and triggers the clipper via
+AutoHotkey v2 or `SendKeys`. Windows requires PowerShell 7+; if
+unavailable, install with `winget install Microsoft.PowerShell`.
 
 ## Installation
 
@@ -229,9 +240,12 @@ the key. Modifiers accepted: `Shift`, `Ctrl`/`Control`, `Alt`/`Option`,
 
 macOS-only keys:
 
-- `SHORTCUT_NAME`: name of the macOS Shortcut that runs the clipper
-  (default `ObsidianClip`).
-- `CHECK_SHORTCUT_EXISTS`: refuse to start if the Shortcut is missing.
+- `SHORTCUT_NAME`: name of an existing macOS Shortcut that runs the
+  clipper. Empty (default) means direct-keystroke mode — the skill
+  activates Chrome and sends `CLIP_SHORTCUT` directly via AppleScript.
+  No Shortcut needs to be built manually.
+- `CHECK_SHORTCUT_EXISTS`: when `SHORTCUT_NAME` is set, refuse to start
+  if that Shortcut is missing. Ignored in direct-keystroke mode.
 
 Windows-only keys:
 
@@ -262,20 +276,25 @@ pwsh -NoProfile -File scripts\clip_webpages.ps1 -DryRun "https://example.com"
 pwsh -NoProfile -File scripts\clip_webpages.ps1 -Config "D:\my.conf" "https://x.com"
 ```
 
-For macOS setup details, Shortcut creation, and troubleshooting, read
-[references/usage.md](references/usage.md). For Windows setup and
+For macOS setup details, trigger mode selection, and troubleshooting,
+read [references/usage.md](references/usage.md). For Windows setup and
 troubleshooting, read [references/usage-windows.md](references/usage-windows.md).
 
 ## Operational Notes (macOS)
 
-- The Shortcut approach is primary; `Shift+Option+S` is a Chrome
-  extension shortcut, not a global macOS shortcut, so the Shortcut
-  must activate Google Chrome before sending the keystroke. Use
-  `applescripts/shortcut_obsidian_clip_template.applescript` as the
-  template.
-- Requires macOS Automation permission for Terminal/Codex to control
-  Google Chrome via `osascript`, and Accessibility permission if the
-  Shortcut sends keystrokes.
+- Trigger mode: direct AppleScript keystroke is primary (no Shortcut
+  build step). The macOS Shortcut path is opt-in via `SHORTCUT_NAME`.
+  Both paths must activate Chrome first because `Shift+Option+S` is a
+  Chrome extension shortcut, not a global macOS shortcut.
+- Requires macOS Automation permission for Terminal / the agent binary
+  to control Google Chrome via `osascript`, and Accessibility permission
+  to send keystrokes. macOS prompts on first use; approve both.
+- `scripts/install.sh` flips `com.google.Chrome AppleScriptEnabled` on
+  via `defaults write` so the login-wall probe can call Chrome's
+  `execute javascript`. Pass `--no-enable-apple-events` to skip that.
+- On failed attempts with `CLIP_OUTPUT_DIR` set, the script only removes
+  `Untitled*.md` files directly under `VAULT_PATH` that were created or
+  modified during the failed attempt.
 - On failed attempts with `CLIP_OUTPUT_DIR` set, the script only removes
   `Untitled*.md` files directly under `VAULT_PATH` that were created or
   modified during the failed attempt.

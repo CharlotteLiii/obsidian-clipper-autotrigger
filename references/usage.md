@@ -28,9 +28,19 @@ you use (or all of them if you use several):
 
 4. (Recommended) Set `CLIP_OUTPUT_DIR` to the subfolder where the Obsidian Web Clipper extension saves Markdown files. This avoids scanning the entire vault on every clip and significantly speeds up large vaults.
 
-5. Ensure a macOS Shortcut named `ObsidianClip` exists. The Chrome extension shortcut `Shift+Option+S` only works while Chrome is focused, so the Shortcut must activate Google Chrome before sending the keystroke.
+5. Pick a clip trigger mode:
 
-   In the Shortcuts app, create a Shortcut named `ObsidianClip`, add a "Run AppleScript" action, and use:
+   - **Direct keystroke (default, zero manual setup).** Leave
+     `SHORTCUT_NAME=""` in `config/clipper.conf`. The skill uses
+     `applescripts/chrome_send_clip_shortcut.scpt` to activate Chrome and
+     send `CLIP_SHORTCUT` (default `Shift+Option+S`) directly. This is
+     the recommended path.
+
+   - **macOS Shortcut (opt-in).** Set `SHORTCUT_NAME="ObsidianClip"`
+     (or any other name) in `config/clipper.conf`. Create the matching
+     Shortcut in Shortcuts.app with a "Run AppleScript" action using the
+     template at
+     `applescripts/shortcut_obsidian_clip_template.applescript`, e.g.:
 
    ```applescript
    on run {input, parameters}
@@ -48,12 +58,21 @@ you use (or all of them if you use several):
    end run
    ```
 
-   The same template is bundled at `applescripts/shortcut_obsidian_clip_template.applescript`.
+   The Shortcut is useful when you want to reuse the same trigger from
+   other tools (menu bar, Raycast, Stream Deck). Otherwise stick with
+   direct keystroke.
 
-6. Grant permissions when macOS prompts:
-   - Terminal/Codex may need Automation permission to control Google Chrome.
-   - The Shortcut may need Accessibility permission if it sends keyboard shortcuts.
-   - The direct keystroke fallback (`chrome_send_clip_shortcut.scpt`) also requires Accessibility permission for the process running the script.
+6. Grant permissions when macOS prompts (first clip only):
+   - **Accessibility** for the terminal / agent that runs `osascript`
+     (System Settings > Privacy & Security > Accessibility). Required
+     for the direct-keystroke path.
+   - **Automation → Google Chrome** for the same process. Required for
+     AppleScript to activate Chrome and switch tabs.
+   - The `scripts/install.sh` installer will also flip
+     `com.google.Chrome AppleScriptEnabled` on via `defaults write` so
+     the login-wall probe can call Chrome's `execute javascript`. If you
+     ran with `--no-enable-apple-events`, toggle it manually via Chrome
+     > View > Developer > **Allow JavaScript from Apple Events**.
 
 7. Restart your agent (OpenClaw / Claude Code / Codex) so the skill is discoverable.
 

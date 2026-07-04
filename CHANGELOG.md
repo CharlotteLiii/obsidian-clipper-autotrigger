@@ -6,6 +6,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-05
+
+### Changed
+- **macOS: default trigger is now direct AppleScript keystroke.**
+  `SHORTCUT_NAME` now defaults to empty in `config/clipper.conf.example`
+  and the installer no longer creates a Shortcut requirement. On empty
+  `SHORTCUT_NAME`, `scripts/clip_webpages.sh` calls
+  `applescripts/chrome_send_clip_shortcut.scpt` directly instead of
+  going through Shortcuts.app. This removes the biggest manual setup
+  step (building an `ObsidianClip` Shortcut by hand). The Shortcut path
+  remains available as an opt-in via `--use-shortcut` /
+  `--shortcut-name` or by editing `SHORTCUT_NAME` after install.
+- **Installer auto-detects the Obsidian vault** on macOS by reading
+  `~/Library/Application Support/obsidian/obsidian.json` when
+  `--vault-path` is omitted. Non-interactive runs use the detected
+  currently-open vault; interactive runs get it as the default prompt.
+- **Installer flips Chrome's AppleScript / JS-from-Apple-Events
+  preference on** via `defaults write com.google.Chrome
+  AppleScriptEnabled -bool true` so the login-wall probe works without
+  the user having to toggle the Chrome menu item manually. Disable with
+  `--no-enable-apple-events`.
+
+### Docs
+- `SKILL.md`, `AGENT_INSTALL.md`, `README.md`, `README.zh-CN.md`, and
+  `references/usage.md` updated to describe the direct-keystroke path,
+  the vault auto-detection, and the Chrome AppleScript-enable step.
+  First-clip permission prompts (Accessibility + Automation → Chrome)
+  are called out in Step 4 of `AGENT_INSTALL.md`.
+
 ## [0.4.0] - 2026-07-04
 
 ### Added
