@@ -3,15 +3,15 @@
 ; the caller can pick which tab to clip via CDP Page.bringToFront beforehand.
 ;
 ; Usage:
-;   AutoHotkey64.exe send_clip_ahk.ahk "+!s"
+;   AutoHotkey64.exe send_clip_ahk.ahk "+!o"
 ;
-; The single argument is an AHK Send() string (e.g. "+!s" for Shift+Alt+S).
-; If omitted, defaults to "+!s" for backward compatibility.
+; The single argument is an AHK Send() string (e.g. "+!o" for Shift+Alt+O).
+; If omitted, defaults to "+!o" for backward compatibility.
 
 #Requires AutoHotkey v2.0
 #SingleInstance Off
 
-keys := "+!s"
+keys := "+!o"
 if A_Args.Length >= 1 && A_Args[1] != "" {
     keys := A_Args[1]
 }

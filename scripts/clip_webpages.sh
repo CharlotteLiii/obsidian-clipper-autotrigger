@@ -85,7 +85,7 @@ source "$CONFIG_FILE"
 VAULT_PATH="${VAULT_PATH:-}"
 SHORTCUT_NAME="${SHORTCUT_NAME-}"
 CLIP_OUTPUT_DIR="${CLIP_OUTPUT_DIR:-}"
-CLIP_SHORTCUT="${CLIP_SHORTCUT:-Shift+Option+S}"
+CLIP_SHORTCUT="${CLIP_SHORTCUT:-}"
 PAGE_LOAD_TIMEOUT="${PAGE_LOAD_TIMEOUT:-45}"
 RENDER_GRACE_SECONDS="${RENDER_GRACE_SECONDS:-3}"
 CLIP_TIMEOUT="${CLIP_TIMEOUT:-30}"
@@ -178,7 +178,7 @@ shortcut_exists() {
 validate_clip_shortcut() {
   local raw="$1"
   if [[ -z "$raw" ]]; then
-    fail "CLIP_SHORTCUT is empty in $CONFIG_FILE"
+    fail "CLIP_SHORTCUT is empty in $CONFIG_FILE. Set it to the key combo you bound for \"Quick clip\" under Obsidian Web Clipper at chrome://extensions/shortcuts, and it must match Chrome exactly (e.g. Shift+Option+O)."
     return 1
   fi
   local IFS='+' token found_key=0

@@ -11,7 +11,7 @@ Strategy:
      the Chrome process whose main window was activated most recently.
 
 Parameters:
-  -Keys  SendKeys chord (e.g. '+%s' for Shift+Alt+S). Defaults to '+%s'.
+  -Keys  SendKeys chord (e.g. '+%o' for Shift+Alt+O). Defaults to '+%o'.
 
 Exit codes:
   0  success (keystroke sent)
@@ -19,7 +19,7 @@ Exit codes:
 #>
 
 param(
-    [string]$Keys = '+%s'
+    [string]$Keys = '+%o'
 )
 
 Set-StrictMode -Version Latest

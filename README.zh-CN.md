@@ -21,7 +21,7 @@ $ scripts/clip_webpages.sh "https://example.com/article"
 [2026-07-04 17:00:00] Vault path: /Users/me/Obsidian Vault
 [2026-07-04 17:00:01] Opening Chrome for: https://example.com/article
 [2026-07-04 17:00:03] Page loaded: Example Article — example.com
-[2026-07-04 17:00:04] Triggering clipper via direct keystroke 'Shift+Option+S' (attempt 1/3)...
+[2026-07-04 17:00:04] Triggering clipper via direct keystroke 'Shift+Option+O' (attempt 1/3)...
 [2026-07-04 17:00:06] Markdown detected: /Users/me/Obsidian Vault/Inbox/Clippings/Example Article.md
 [2026-07-04 17:00:06] Result: SUCCEEDED
 ```
@@ -55,8 +55,9 @@ $ scripts/clip_webpages.sh "https://example.com/article"
 2. **手动按快捷键能弹出 Web Clipper。** 在那个 Chrome 里随便打开一个页面，
    自己按一下快捷键，确认 Web Clipper 弹窗出现。没反应就去
    `chrome://extensions/shortcuts` 绑定。
-3. **配置和 Chrome 一致。** 配置文件里的 `CLIP_SHORTCUT` 必须等于你在
-   Chrome 里实际绑定的按键组合。
+3. **配置和 Chrome 一致。** 配置文件里的 `CLIP_SHORTCUT` 是必填项（没有
+   默认值），必须等于你在 Chrome 里为 Obsidian Web Clipper 的 **"Quick clip"**
+   绑定的按键组合，完全一致。
 4. **目标网站你已经在被驱动的 Chrome profile 里登录了。** 两个平台的
    脚本层都会在页面加载后跑登录墙探针（Windows 通过 CDP，macOS 通过
    AppleScript），命中就以 `SUSPECTED_LOGIN_WALL` 中止该 URL（见
@@ -105,7 +106,7 @@ Windows 见 [`references/usage-windows.md`](references/usage-windows.md)。
 git clone https://github.com/CharlotteLiii/obsidian-clipper-autotrigger.git
 cd obsidian-clipper-autotrigger
 cp config/clipper.conf.example config/clipper.conf
-# 编辑 VAULT_PATH、CLIP_OUTPUT_DIR、CLIP_SHORTCUT 匹配你的环境。
+# 设置 VAULT_PATH、CLIP_OUTPUT_DIR；CLIP_SHORTCUT 为必填（无默认值）。
 scripts/install.sh
 scripts/clip_webpages.sh --dry-run "https://example.com"
 ```
@@ -116,7 +117,7 @@ scripts/clip_webpages.sh --dry-run "https://example.com"
 git clone https://github.com/CharlotteLiii/obsidian-clipper-autotrigger.git
 cd obsidian-clipper-autotrigger
 Copy-Item config\clipper.win.conf.example config\clipper.win.conf
-# 编辑 VAULT_PATH、CLIP_OUTPUT_DIR、CLIP_SHORTCUT 匹配你的环境。
+# 设置 VAULT_PATH、CLIP_OUTPUT_DIR；CLIP_SHORTCUT 为必填（无默认值）。
 pwsh -NoProfile -File scripts\install.ps1
 pwsh -NoProfile -File scripts\clip_webpages.ps1 -DryRun "https://example.com"
 ```
@@ -162,7 +163,7 @@ bootstrap 会：自动识别你的 Agent skills 目录（OpenClaw → Claude Cod
 |------------------------|----------------------------------------------------------------------------------------------------------------------------|------------------------------------|
 | `VAULT_PATH`           | Obsidian vault 的绝对路径，必须存在。                                                                                       | *（必填）*                         |
 | `CLIP_OUTPUT_DIR`      | vault 里 Web Clipper 保存 Markdown 的相对目录，需和扩展"Save to"设置一致。留空则扫描整个 vault。                            | `""`（整个 vault）                 |
-| `CLIP_SHORTCUT`        | 你在 `chrome://extensions/shortcuts` 里为 Obsidian Web Clipper 绑定的按键组合，必须和 Chrome 里完全一致。                    | `Shift+Option+S` / `Shift+Alt+S`   |
+| `CLIP_SHORTCUT`        | 你在 `chrome://extensions/shortcuts` 里为 Obsidian Web Clipper 的 "Quick clip" 绑定的按键组合，必须和 Chrome 里完全一致，无法自动探测。 | *（必填）*                         |
 | `SHORTCUT_NAME`        | *（仅 macOS，可选）* 用来触发扩展的 macOS Shortcut 名称。留空则使用 AppleScript 直接注入键盘（默认）。模板见 `references/usage.md`。 | *（空）*                          |
 | `TRIGGER_DRIVER`       | *（仅 Windows）* `ahk`（AutoHotkey v2）或 `sendkeys`。                                                                       | `sendkeys`                         |
 | `CHROME_USER_DATA_DIR` | *（仅 Windows）* 可选，用于指定驱动的 Chrome profile。留空则在 `%LOCALAPPDATA%` 下创建一个专属 profile。                     | `""`                               |

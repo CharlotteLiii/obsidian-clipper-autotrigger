@@ -102,7 +102,7 @@ $AhkExe           = Get-Cfg 'AHK_EXE' 'AutoHotkey64.exe'
 $ChromeExe        = Get-Cfg 'CHROME_EXE' ''
 $DebugPort        = [int](Get-Cfg 'CHROME_DEBUG_PORT' 9222)
 $UserDataDir      = Get-Cfg 'CHROME_USER_DATA_DIR' ''
-$ClipShortcut     = Get-Cfg 'CLIP_SHORTCUT' 'Shift+Alt+S'
+$ClipShortcut     = Get-Cfg 'CLIP_SHORTCUT' ''
 $LoginWallCheck   = (Get-Cfg 'LOGIN_WALL_CHECK' '1')
 $LoginWallMinText = [int](Get-Cfg 'LOGIN_WALL_MIN_TEXT' 300)
 
@@ -110,9 +110,9 @@ $LoginWallMinText = [int](Get-Cfg 'LOGIN_WALL_MIN_TEXT' 300)
 
 function Parse-ClipShortcut {
     <#
-    Splits a human shortcut like 'Shift+Alt+S' or 'Ctrl+Shift+O' into a
+    Splits a human shortcut like 'Shift+Alt+O' or 'Ctrl+Shift+O' into a
     normalized modifier set + a single main key. Returns a hashtable:
-        @{ Modifiers = @('Shift','Alt'); Key = 'S'; Raw = 'Shift+Alt+S' }
+        @{ Modifiers = @('Shift','Alt'); Key = 'O'; Raw = 'Shift+Alt+O' }
     Modifiers accepted (aliases collapsed):
         Shift            -> Shift
         Ctrl / Control   -> Ctrl
@@ -121,7 +121,7 @@ function Parse-ClipShortcut {
     #>
     param([Parameter(Mandatory)][string]$Shortcut)
     $tokens = ($Shortcut -split '\+') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
-    if (-not $tokens) { throw "CLIP_SHORTCUT is empty." }
+    if (-not $tokens) { throw "CLIP_SHORTCUT is empty in the config. Set it to the key combo you bound for `"Quick clip`" under Obsidian Web Clipper at chrome://extensions/shortcuts, and it must match Chrome exactly (e.g. Shift+Alt+O)." }
     $modifiers = New-Object System.Collections.Generic.List[string]
     $mainKey = $null
     foreach ($tok in $tokens) {
@@ -143,7 +143,7 @@ function Parse-ClipShortcut {
 }
 
 function ConvertTo-AhkShortcut {
-    <# Converts parsed shortcut into AHK Send syntax, e.g. '+!s' for Shift+Alt+S. #>
+    <# Converts parsed shortcut into AHK Send syntax, e.g. '+!o' for Shift+Alt+O. #>
     param([Parameter(Mandatory)][hashtable]$Parsed)
     $map = @{ 'Shift' = '+'; 'Ctrl' = '^'; 'Alt' = '!'; 'Meta' = '#' }
     $prefix = ''

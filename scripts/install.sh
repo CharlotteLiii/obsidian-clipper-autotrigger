@@ -6,8 +6,8 @@
 #   Interactive (default when stdin is a TTY): asks any missing values.
 #   Non-interactive (--non-interactive, or when stdin is not a TTY): uses
 #     only what you pass on the command line, no prompts. Missing optional
-#     fields fall back to sensible defaults. Missing REQUIRED fields (only
-#     --vault-path is required) cause a hard error.
+#     fields fall back to sensible defaults. Missing REQUIRED fields (--vault-path and --shortcut) cause a
+#     hard error.
 #
 # What it does:
 #   1. Seeds config/clipper.conf from clipper.conf.example when missing.
@@ -49,8 +49,11 @@ Options:
                              in non-interactive mode).
   --clip-output-dir <path>   Relative folder inside the vault where the
                              Web Clipper saves notes. Empty = whole vault.
-  --shortcut <combo>         Key combo bound to the Web Clipper in Chrome
-                             (e.g. "Shift+Option+S").
+  --shortcut <combo>         Key combo bound for "Quick clip" under Obsidian
+                             Web Clipper at chrome://extensions/shortcuts
+                             (e.g. "Shift+Option+O"). REQUIRED: no default,
+                             cannot be auto-detected. Must match Chrome
+                             exactly.
   --shortcut-name <name>     Name of an existing macOS Shortcut that
                              triggers the clipper. When omitted, direct
                              AppleScript keystroke is used (no manual
@@ -84,7 +87,7 @@ Examples:
   $0 --non-interactive \\
      --vault-path "\$HOME/Obsidian Vault" \\
      --clip-output-dir "Inbox/Clippings" \\
-     --shortcut "Shift+Option+S"
+     --shortcut "Shift+Option+O"
 
   # Only link into OpenClaw, not other agents:
   $0 --target-root "\$HOME/.openclaw/workspace/skills"
@@ -201,16 +204,26 @@ elif [[ ! -d "$VAULT_PATH" ]]; then
 fi
 
 CLIP_OUTPUT_DIR="${CLIP_OUTPUT_DIR:-$(prompt 'Relative save-to folder inside the vault (blank = whole vault)' '')}"
-CLIP_SHORTCUT="${CLIP_SHORTCUT:-$(prompt 'Clip shortcut bound in Chrome' 'Shift+Option+S')}"
+
+# CLIP_SHORTCUT is REQUIRED and has no default: it must match the combo you
+# bound for "Quick clip" under Obsidian Web Clipper at
+# chrome://extensions/shortcuts. It cannot be auto-detected from Chrome.
+if [[ -z "$CLIP_SHORTCUT" ]]; then
+    if [[ "$INTERACTIVE" == "yes" ]]; then
+        while [[ -z "$CLIP_SHORTCUT" ]]; do
+            CLIP_SHORTCUT="$(prompt 'Clip shortcut bound for "Quick clip" in Chrome (e.g. Shift+Option+O)' '')"
+            [[ -z "$CLIP_SHORTCUT" ]] && warn 'Clip shortcut is required; it must match Chrome exactly (chrome://extensions/shortcuts).'
+        done
+    else
+        die '--shortcut is required: set it to the combo you bound for "Quick clip" under Obsidian Web Clipper at chrome://extensions/shortcuts (cannot be auto-detected).'
+    fi
+fi
 
 # Only prompt for a Shortcut name when the user opted into that path.
 if [[ "$USE_SHORTCUT" -eq 1 ]]; then
     SHORTCUT_NAME="${SHORTCUT_NAME:-$(prompt 'macOS Shortcut name that triggers the clipper' 'ObsidianClip')}"
     [[ -z "$SHORTCUT_NAME" ]] && SHORTCUT_NAME="ObsidianClip"
 fi
-
-# Fill remaining defaults
-[[ -z "$CLIP_SHORTCUT" ]] && CLIP_SHORTCUT="Shift+Option+S"
 
 # ── Seed / update config/clipper.conf ────────────────────────────
 

@@ -21,10 +21,13 @@ SHORTCUT_NAME=""
 # extension's "Save to" folder. Leave empty to scan the whole vault.
 CLIP_OUTPUT_DIR="Inbox/Clippings"
 
-# Key combo bound to "Obsidian Web Clipper" at chrome://extensions/shortcuts.
-# Must match Chrome exactly, otherwise the popup will not appear.
+# REQUIRED, no default. The key combo you bound for "Quick clip" under
+# "Obsidian Web Clipper" at chrome://extensions/shortcuts. Must match Chrome
+# exactly, otherwise the popup will not appear. It cannot be auto-detected,
+# so you must set it yourself (scripts/install.sh will ask for it).
 # Modifiers: Shift, Ctrl/Control, Alt/Option, Cmd/Meta. Case-insensitive.
-CLIP_SHORTCUT="Shift+Option+S"
+# Example: Shift+Option+O
+CLIP_SHORTCUT=""
 
 # When SHORTCUT_NAME is set, fail before opening Chrome if that Shortcut
 # is not found. Ignored when SHORTCUT_NAME is empty (direct keystroke

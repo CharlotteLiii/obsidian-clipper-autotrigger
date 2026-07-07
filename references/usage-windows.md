@@ -17,7 +17,7 @@ AppleScript, and triggers the Web Clipper extension via AutoHotkey v2 or
 4. **Trigger driver** (choose one during install):
    - `ahk` — install **AutoHotkey v2** (`winget install AutoHotkey.AutoHotkey`). Recommended: more reliable, tolerates focus changes better.
    - `sendkeys` — no extra install; uses `System.Windows.Forms.SendKeys`. Works, but sensitive to focus and modifier state.
-5. The Web Clipper's clip shortcut is left at its default `Shift+Alt+S`. Both drivers send this chord.
+5. Set `CLIP_SHORTCUT` to the combo you bound for "Quick clip" at `chrome://extensions/shortcuts` (required, no default; e.g. `Shift+Alt+O`). Both drivers send this chord.
 
 ## First-time setup
 
@@ -71,7 +71,7 @@ What happens per URL:
 2. A new tab is opened via CDP; the script waits for `Page.loadEventFired`
    plus a small render grace period.
 3. The tab is brought to the foreground; the configured trigger driver
-   sends `Shift+Alt+S` to Chrome to run the clipper.
+   sends the configured `CLIP_SHORTCUT` chord to Chrome to run the clipper.
 4. The vault's Markdown files are diffed against the pre-clip snapshot;
    the newest changed file is reported as the result.
 5. On failure, root-level `Untitled*.md` artefacts created during the

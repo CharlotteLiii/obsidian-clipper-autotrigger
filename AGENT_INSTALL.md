@@ -67,7 +67,7 @@ guess.
 |----------------------|-----------|-----------------------------------------------|
 | Obsidian vault path  | Optional* | `/Users/me/Obsidian Vault` or `D:\Vault`      |
 | Clip output subdir   | Optional  | `Inbox/Clippings` (leave blank = whole vault) |
-| Clip shortcut        | Optional  | `Shift+Alt+S` (Win), `Shift+Option+S` (mac)   |
+| Clip shortcut        | REQUIRED  | `Shift+Alt+O` (Win), `Shift+Option+O` (mac)   |
 | Use macOS Shortcut   | Optional  | `--use-shortcut` (default is direct keystroke)|
 | Trigger driver (Win) | Optional  | `ahk` or `sendkeys` (default: `sendkeys`)     |
 
@@ -80,12 +80,19 @@ If the user has an existing `obsidian.json` you can peek at it for the
 vault path, but **confirm the path with the user before writing it into
 the config file**.
 
+**The clip shortcut is required and cannot be auto-detected.** It must
+match the combo the user bound for **"Quick clip"** under Obsidian Web
+Clipper at `chrome://extensions/shortcuts`, exactly as shown in Chrome.
+Always ask the user for it; never guess a default. If you omit
+`--shortcut`, the installer aborts in non-interactive mode.
+
 ---
 
 ## Step 3 — Run the installer non-interactively
 
-Pass everything the user gave you on the command line. Missing values are
-skipped — the installer will use sensible defaults, not prompt.
+Pass everything the user gave you on the command line. `--vault-path`
+(macOS can auto-detect) and `--shortcut` are required; other missing
+values fall back to sensible defaults without prompting.
 
 ### macOS / Linux
 

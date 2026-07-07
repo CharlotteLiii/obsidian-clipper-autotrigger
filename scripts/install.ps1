@@ -21,7 +21,9 @@ What it does:
 Parameters:
   -VaultPath        Absolute path to the Obsidian vault (REQUIRED unattended).
   -ClipOutputDir    Relative save-to folder inside the vault; blank = whole vault.
-  -Shortcut         Key combo bound in Chrome (default: Shift+Alt+S).
+  -Shortcut         Key combo bound for "Quick clip" under Obsidian Web
+                    Clipper at chrome://extensions/shortcuts (e.g. Shift+Alt+O).
+                    REQUIRED: no default, cannot be auto-detected.
   -TriggerDriver    ahk | sendkeys (default: sendkeys — zero install).
   -TargetRoot       Link the skill ONLY into this directory.
   -AllHosts         Link into every detected agent skills dir (default when
@@ -166,8 +168,18 @@ if (-not $VaultPath) {
 if (-not $PSBoundParameters.ContainsKey('ClipOutputDir')) {
     $ClipOutputDir = Prompt-With-Default 'Relative folder inside the vault (blank = whole vault)' ''
 }
+# CLIP_SHORTCUT is REQUIRED and has no default: it must match the combo you
+# bound for "Quick clip" under Obsidian Web Clipper at
+# chrome://extensions/shortcuts. It cannot be auto-detected from Chrome.
 if (-not $Shortcut) {
-    $Shortcut = Prompt-With-Default 'Clip shortcut bound in Chrome' 'Shift+Alt+S'
+    if ($Interactive) {
+        while (-not $Shortcut) {
+            $Shortcut = Read-Host 'Clip shortcut bound for "Quick clip" in Chrome (e.g. Shift+Alt+O)'
+            if (-not $Shortcut) { Write-Warn 'Clip shortcut is required; it must match Chrome exactly (chrome://extensions/shortcuts).' }
+        }
+    } else {
+        Die '-Shortcut is required: set it to the combo you bound for "Quick clip" under Obsidian Web Clipper at chrome://extensions/shortcuts (cannot be auto-detected).'
+    }
 }
 
 # ── Seed / patch config/clipper.win.conf ─────────────────────────

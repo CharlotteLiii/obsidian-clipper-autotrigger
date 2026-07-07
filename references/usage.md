@@ -33,8 +33,9 @@ you use (or all of them if you use several):
    - **Direct keystroke (default, zero manual setup).** Leave
      `SHORTCUT_NAME=""` in `config/clipper.conf`. The skill uses
      `applescripts/chrome_send_clip_shortcut.scpt` to activate Chrome and
-     send `CLIP_SHORTCUT` (default `Shift+Option+S`) directly. This is
-     the recommended path.
+     send `CLIP_SHORTCUT` directly (required, no default; set it to the
+     combo you bound for "Quick clip" in Chrome). This is the
+     recommended path.
 
    - **macOS Shortcut (opt-in).** Set `SHORTCUT_NAME="ObsidianClip"`
      (or any other name) in `config/clipper.conf`. Create the matching
@@ -135,7 +136,7 @@ When the Shortcut produces no Markdown, a fallback step appears:
 
 ```text
 No Markdown file generated via Shortcut on attempt 1.
-Trying direct Shift+Option+S fallback...
+Trying direct CLIP_SHORTCUT keystroke fallback...
 Markdown detected via fallback: /path/to/note.md
 ```
 
@@ -163,7 +164,7 @@ SUCCESS https://example.com/article /path/to/generated-note.md
   continues (does not abort the clip), so leaving this off just means
   you lose the safety net.
 - `Shortcut failed`: `shortcuts run "$SHORTCUT_NAME"` exited nonzero.
-- `Direct shortcut keystroke failed`: the `Shift+Option+S` fallback also failed. Check Accessibility permissions.
+- `Direct shortcut keystroke failed`: the direct `CLIP_SHORTCUT` keystroke fallback also failed. Check Accessibility permissions.
 - `No Markdown file was generated`: no new or modified `.md` file was detected in the vault (or `CLIP_OUTPUT_DIR`) within `CLIP_TIMEOUT` after all retry attempts.
 
 ## Login-wall probe (macOS)
@@ -195,7 +196,7 @@ Config knobs in `config/clipper.conf`:
 
 - The script opens the first URL in a new Chrome window and reuses that window for subsequent URLs by opening new tabs. This reduces visual disruption and speeds up batch clipping.
 - The script intentionally does not send keyboard events as the primary clip method. It runs the configured macOS Shortcut, and only falls back to direct keystroke when the Shortcut succeeds but produces no Markdown.
-- The `Shift+Option+S` Chrome extension shortcut is not global. The Shortcut (and the fallback) must activate Chrome first, otherwise the keystroke may be sent to Terminal, Codex, or another foreground app.
+- The `CLIP_SHORTCUT` Chrome extension shortcut is not global. The Shortcut (and the fallback) must activate Chrome first, otherwise the keystroke may be sent to Terminal, Codex, or another foreground app.
 - The script tracks the Chrome window id and tab id returned when it opens the URL, then closes only that tab after a successful clip (or after final failure, so no tabs accumulate).
 - Markdown detection compares file paths and modification timestamps under the vault (or `CLIP_OUTPUT_DIR`) before and after each clipping attempt, so both new files and changed files count as success.
 - Adaptive polling uses 0.5-second intervals for the first 5 seconds, the configured `POLL_INTERVAL` for seconds 5-15, and 2-second intervals thereafter. This keeps detection responsive for fast clips while reducing overhead for slow pages.
