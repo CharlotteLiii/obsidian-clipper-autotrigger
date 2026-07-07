@@ -6,6 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-07
+
+### Changed
+- **`CLIP_SHORTCUT` is now required and has no default.** Previously it
+  fell back to `Shift+Option+S` (macOS) / `Shift+Alt+S` (Windows), which
+  failed silently when it did not match Chrome: the Web Clipper popup
+  never opened and the run just retried until timeout. Since the combo
+  cannot be auto-detected from Chrome, it must now be set explicitly.
+  - Runtime (`clip_webpages.sh` / `clip_webpages.ps1`): empty value
+    aborts with a message pointing to the "Quick clip" binding at
+    `chrome://extensions/shortcuts`.
+  - `applescripts/chrome_send_clip_shortcut.scpt`: errors out when
+    `OCA_CLIP_SHORTCUT` is unset instead of using a hardcoded fallback.
+  - Installers (`install.sh` / `install.ps1`): interactive mode
+    re-prompts until a value is given; non-interactive mode aborts when
+    `--shortcut` / `-Shortcut` is missing.
+  - `preflight.sh` / `preflight.ps1`: added an explicit empty-value check.
+  - Config examples ship with `CLIP_SHORTCUT` empty and documented as
+    required; docs (`AGENT_INSTALL`, `README`, `README.zh-CN`, `SKILL`,
+    `usage*`) mark it REQUIRED and not auto-detectable.
+
 ### Added
 - **macOS: Web Clipper extension detection.** New
   `scripts/detect_extension.sh` probes every Chrome (stable) profile
