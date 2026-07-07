@@ -1,6 +1,7 @@
 -- Sends the Obsidian Web Clipper keystroke to Google Chrome.
--- Key combo is passed via env var OCA_CLIP_SHORTCUT (e.g. "Shift+Option+S").
--- Falls back to Shift+Option+S if unset.
+-- Key combo is passed via env var OCA_CLIP_SHORTCUT (e.g. "Shift+Option+O").
+-- REQUIRED: errors out if unset. There is no default; the combo must match
+-- what you bound for "Quick clip" at chrome://extensions/shortcuts.
 
 on parseShortcut(raw)
 	set AppleScript's text item delimiters to "+"
@@ -33,10 +34,10 @@ end parseShortcut
 on run
 	try
 		set raw to (system attribute "OCA_CLIP_SHORTCUT")
-		if raw is "" then set raw to "Shift+Option+S"
 	on error
-		set raw to "Shift+Option+S"
+		set raw to ""
 	end try
+	if raw is "" then error "OCA_CLIP_SHORTCUT is not set. Set CLIP_SHORTCUT in config/clipper.conf to the combo you bound for \"Quick clip\" at chrome://extensions/shortcuts."
 
 	set parsed to parseShortcut(raw)
 	set mods to item 1 of parsed

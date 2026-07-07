@@ -36,10 +36,12 @@ the script — do not just run and let it fail.
    Shortcuts.app before the first clip.
 3. **Configured shortcut must match Chrome.** The value of
    `CLIP_SHORTCUT` in `config/clipper.conf` (macOS) or `CLIP_SHORTCUT` in
-   `config/clipper.win.conf` (Windows) must equal the key combo actually
-   bound at `chrome://extensions/shortcuts` for Obsidian Web Clipper.
-   Defaults: `Shift+Option+S` (macOS) / `Shift+Alt+S` (Windows). If the
-   user customized the shortcut, update the config accordingly before
+   `config/clipper.win.conf` (Windows) is REQUIRED (no default) and must
+   equal the key combo bound for "Quick clip" at
+   `chrome://extensions/shortcuts` for Obsidian Web Clipper. It cannot be
+   auto-detected, so the installer asks for it. Always confirm the exact
+   combo with the user (e.g. `Shift+Option+O` / `Shift+Alt+O`) and update
+   the config accordingly before
    running.
 4. **Target URLs must not require login in the driven Chrome profile.**
    Login-wall handling has two layers on **both platforms**:
@@ -221,10 +223,11 @@ Shared keys (semantics identical on both platforms):
 - `VAULT_PATH`: absolute path to the Obsidian vault to monitor.
 - `CLIP_OUTPUT_DIR`: relative "Save to" folder inside the vault. Leave
   empty to scan the whole vault.
-- `CLIP_SHORTCUT`: the key combo bound to Obsidian Web Clipper in Chrome
-  (`chrome://extensions/shortcuts`). Defaults: `Shift+Option+S` on macOS,
-  `Shift+Alt+S` on Windows. Must match Chrome exactly or clipping will
-  silently do nothing. See [Shortcut format](#shortcut-format) below.
+- `CLIP_SHORTCUT`: REQUIRED, no default. The key combo bound for "Quick
+  clip" in Chrome (`chrome://extensions/shortcuts`). Cannot be
+  auto-detected; the installer asks for it. Must match Chrome exactly or
+  clipping will silently do nothing. See [Shortcut format](#shortcut-format)
+  below.
 - `PAGE_LOAD_TIMEOUT`, `RENDER_GRACE_SECONDS`, `CLIP_TIMEOUT`,
   `MAX_RETRIES`, `POLL_INTERVAL`: timing knobs.
 
@@ -234,9 +237,9 @@ Shared keys (semantics identical on both platforms):
 the key. Modifiers accepted: `Shift`, `Ctrl`/`Control`, `Alt`/`Option`,
 `Cmd`/`Meta`/`Win`. Order does not matter, case-insensitive. Examples:
 
-- `Shift+Alt+S` (Windows default)
-- `Shift+Option+S` (macOS default; `Option` is an alias for `Alt`)
-- `Ctrl+Shift+O` (a common user override)
+- `Shift+Alt+O` (common on Windows)
+- `Shift+Option+O` (common on macOS; `Option` is an alias for `Alt`)
+- `Ctrl+Shift+O` (another common binding)
 
 macOS-only keys:
 
@@ -284,7 +287,7 @@ troubleshooting, read [references/usage-windows.md](references/usage-windows.md)
 
 - Trigger mode: direct AppleScript keystroke is primary (no Shortcut
   build step). The macOS Shortcut path is opt-in via `SHORTCUT_NAME`.
-  Both paths must activate Chrome first because `Shift+Option+S` is a
+  Both paths must activate Chrome first because `CLIP_SHORTCUT` is a
   Chrome extension shortcut, not a global macOS shortcut.
 - Requires macOS Automation permission for Terminal / the agent binary
   to control Google Chrome via `osascript`, and Accessibility permission

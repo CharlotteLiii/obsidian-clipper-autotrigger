@@ -8,10 +8,13 @@ VAULT_PATH="C:\Users\me\Documents\Obsidian Vault"
 # Leave empty to scan the whole vault.
 CLIP_OUTPUT_DIR="Inbox/Clippings"
 
-# Key combo bound to "Obsidian Web Clipper" at chrome://extensions/shortcuts.
-# Must match Chrome exactly, otherwise the popup will not appear.
+# REQUIRED, no default. The key combo you bound for "Quick clip" under
+# "Obsidian Web Clipper" at chrome://extensions/shortcuts. Must match Chrome
+# exactly, otherwise the popup will not appear. It cannot be auto-detected,
+# so you must set it yourself (scripts/install.ps1 will ask for it).
 # Modifiers: Shift, Ctrl/Control, Alt/Option, Cmd/Meta. Case-insensitive.
-CLIP_SHORTCUT="Shift+Alt+S"
+# Example: Shift+Alt+O
+CLIP_SHORTCUT=""
 
 # Trigger driver: ahk (AutoHotkey v2) or sendkeys.
 TRIGGER_DRIVER=ahk

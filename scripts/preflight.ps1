@@ -61,7 +61,7 @@ foreach ($line in Get-Content -LiteralPath $Config -Encoding UTF8) {
 
 $Vault    = $conf['VAULT_PATH']
 $OutDir   = $conf['CLIP_OUTPUT_DIR']
-$Shortcut = if ($conf['CLIP_SHORTCUT']) { $conf['CLIP_SHORTCUT'] } else { 'Shift+Alt+S' }
+$Shortcut = if ($conf['CLIP_SHORTCUT']) { $conf['CLIP_SHORTCUT'] } else { '' }
 $Driver   = if ($conf['TRIGGER_DRIVER']) { $conf['TRIGGER_DRIVER'] } else { 'sendkeys' }
 $Port     = if ($conf['CHROME_DEBUG_PORT']) { $conf['CHROME_DEBUG_PORT'] } else { '9222' }
 
@@ -88,6 +88,15 @@ if (-not $Vault) {
     } else {
         Pass 'CLIP_OUTPUT_DIR empty - will scan the whole vault'
     }
+}
+
+# ── 2b. Clip shortcut ────────────────────────────────────────────
+
+Info 'Clip shortcut'
+if (-not $Shortcut) {
+    Fail 'CLIP_SHORTCUT is empty in the config. Set it to the combo you bound for "Quick clip" under Obsidian Web Clipper at chrome://extensions/shortcuts (must match Chrome exactly).'
+} else {
+    Pass "CLIP_SHORTCUT set: $Shortcut"
 }
 
 # ── 3. Chrome ────────────────────────────────────────────────────
@@ -177,7 +186,7 @@ if ($Driver -eq 'ahk') {
 Info 'Manual verification (agent-facing)'
 Write-Host '  Ask the user to confirm:'
 Write-Host "    1. Chrome has the `"Obsidian Web Clipper`" extension installed in the CDP profile."
-Write-Host "    2. Pressing $Shortcut in Chrome opens the Web Clipper popup."
+Write-Host "    2. Pressing $(if ($Shortcut) { $Shortcut } else { '(unset)' }) in Chrome opens the Web Clipper popup."
 Write-Host '    3. Obsidian is open with the correct vault loaded.'
 
 # ── Result ───────────────────────────────────────────────────────

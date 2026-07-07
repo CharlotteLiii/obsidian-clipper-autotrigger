@@ -80,6 +80,15 @@ else
     fi
 fi
 
+# ── 2b. Clip shortcut ─────────────────────────────────────────────
+
+info "Clip shortcut"
+if [[ -z "${CLIP_SHORTCUT:-}" ]]; then
+    fail "CLIP_SHORTCUT is empty in $CONFIG. Set it to the combo you bound for \"Quick clip\" under Obsidian Web Clipper at chrome://extensions/shortcuts (must match Chrome exactly)."
+else
+    pass "CLIP_SHORTCUT set: $CLIP_SHORTCUT"
+fi
+
 # ── 3. Chrome ─────────────────────────────────────────────────────
 
 info "Google Chrome"
@@ -125,7 +134,7 @@ fi
 info "Manual verification (agent-facing)"
 printf '  Ask the user to confirm:\n'
 printf '    1. Chrome has the "Obsidian Web Clipper" extension installed and configured.\n'
-printf '    2. Pressing %s in Chrome opens the Web Clipper popup.\n' "${CLIP_SHORTCUT:-Shift+Option+S}"
+printf '    2. Pressing %s in Chrome opens the Web Clipper popup.\n' "${CLIP_SHORTCUT:-(unset)}"
 printf '    3. Obsidian is open with the correct vault loaded.\n'
 
 # ── Result ────────────────────────────────────────────────────────
